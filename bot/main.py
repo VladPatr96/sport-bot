@@ -21,7 +21,8 @@ def load_config():
 async def send_article(bot: Bot, article: dict):
     preview = render_preview(article)
     # формируем slug для GitHub Pages: последний сегмент URL + .html
-    slug   = article["url"].rstrip("/").split("/")[-1] + ".html"
+    raw = article["url"].rstrip("/").split("/")[-1]
+    slug = raw if raw.endswith(".html") else raw + ".html"
     wa_url = f"{WEBAPP_BASE}/{slug}"
     keyboard = InlineKeyboardMarkup([[
         InlineKeyboardButton(
