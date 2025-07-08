@@ -12,20 +12,6 @@ jobs:
 +   defaults:
 +     run:
 +       working-directory: ./sport-bot   # если ваш код лежит в подпапке sport-bot
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-
-      - name: Install dependencies
-        run: |
-          pip install pyyaml beautifulsoup4 jinja2 requests
-
-      - name: Generate static pages
--       run: python generate_pages.py
 +       run: python generate_pages.py
 
       - name: Deploy to GitHub Pages
