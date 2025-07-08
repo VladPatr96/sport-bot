@@ -1,0 +1,19 @@
+championat:
+  url: https://www.championat.com/news/1.html?utm_source=button&utm_medium=news
+  method: html
+  rate_limit: 1/sec
+  parser:
+    date_group: "div.news-items__head"
+    time: "div.news-item__time"
+    article_link: "div.news-item__content a.news-item__title"
+    tag: "div.news-item__content a.news-item__tag"
+    comments: "div.news-item__content a.news-item__comments"
+    article_title: "h1.article__header__title"
+    article_body_container: "div#articleBody"
+    article_tags: "div.tags__items a.tags__item span"
+    article_images: >
+      div.article-head__photo img,
+      div.content-photo img,
+      div.article-content img,
+      figure.article__figure img
+    article_videos: "div.article-content iframe, div.article-content video"

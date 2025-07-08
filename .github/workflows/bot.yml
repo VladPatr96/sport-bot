@@ -1,0 +1,27 @@
+name: Run Telegram Bot
+
+on:
+  schedule:
+    - cron: '0 * * * *'     # каждый час, настраивайте под себя
+  workflow_dispatch:
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    env:
+      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      CHAT_ID:   ${{ secrets.CHAT_ID }}
+      WEBAPP_BASE: https://<ваш-login>.github.io/<repo-name>
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with: python-version: '3.x'
+
+    - name: Install deps
+      run: |
+        pip install python-telegram-bot==20.0a4 pyyaml beautifulsoup4 requests
+
+    - name: Run bot
+      run: python bot/main.py
