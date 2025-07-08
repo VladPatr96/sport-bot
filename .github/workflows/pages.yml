@@ -1,3 +1,4 @@
+# .github/workflows/pages.yml
 name: Static HTML
 
 on:
@@ -9,10 +10,21 @@ on:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
-+   defaults:
-+     run:
-+       working-directory: ./sport-bot   # если ваш код лежит в подпапке sport-bot
-+       run: python generate_pages.py
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          pip install pyyaml beautifulsoup4 jinja2 requests
+
+      - name: Generate static pages
+        run: python generate_pages.py
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
@@ -20,4 +32,3 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./pages
           publish_branch: gh-pages
-
