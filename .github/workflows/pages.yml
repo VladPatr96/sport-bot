@@ -1,30 +1,33 @@
-name: Build & Deploy Pages
+name: Static HTML
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with: python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
 
-    - name: Install deps
-      run: |
-        pip install pyyaml beautifulsoup4 jinja2 requests
+      - name: Install dependencies
+        run: |
+          pip install pyyaml beautifulsoup4 jinja2 requests
 
-    - name: Generate static pages
-      run: python generate_pages.py
+      - name: Generate static pages
+        run: python generate_pages.py
 
-    - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v5
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./pages
-        publish_branch: gh-pages
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v5
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./pages
+          publish_branch: gh-pages
