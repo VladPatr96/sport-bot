@@ -10,6 +10,7 @@ on:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -22,6 +23,12 @@ jobs:
       - name: Install dependencies
         run: |
           pip install pyyaml beautifulsoup4 jinja2 requests
+
+      - name: Prepare templates for Jinja
+        # копируем webapp/templates → ./templates,
+        # чтобы generate_pages.py нашёл article.html
+        run: |
+          cp -R webapp/templates templates
 
       - name: Generate static pages
         run: python generate_pages.py
