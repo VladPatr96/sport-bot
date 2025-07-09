@@ -8,7 +8,7 @@ championat:
     article_link: "div.news-item__content a.news-item__title"
     tag: "div.news-item__content a.news-item__tag"
     comments: "div.news-item__content a.news-item__comments"
-    article_title: "h1.article__header__title"
+    article_title: "div.article-head__title"
     article_body_container: "div#articleBody"
     article_tags: "div.tags__items a.tags__item span"
     article_images: >
