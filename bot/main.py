@@ -41,7 +41,10 @@ async def send_article(bot, article):
     wa_url = f"{WEBAPP_BASE}/{slug}"
 
     # Проверка изображения
-    main_image = article["images"][0] if article["images"] and is_image_accessible(article["images"][0]) else fallback_image
+    image_path = article.get("image") or (article["images"][0] if article["images"] else None)
+    photo_url = f"{WEBAPP_BASE}/{image_path}" if image_path else fallback_image
+    if not is_image_accessible(photo_url):
+        photo_url = fallback_image
 
     # Формирование текста
     summary = article["summary"]
@@ -57,11 +60,10 @@ async def send_article(bot, article):
     try:
         await bot.send_photo(
             chat_id=CHAT_ID,
-            photo=main_image,
+            photo=photo_url,
             caption=caption,
             parse_mode="HTML",
-            reply_markup=keyboard,
-            timeout=10
+            reply_markup=keyboard
         )
         logger.info(f"✅ Отправлено: {article['title']}")
     except TelegramError as e:
