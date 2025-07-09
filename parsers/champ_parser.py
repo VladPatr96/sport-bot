@@ -62,7 +62,8 @@ class ChampParser:
         if body_container:
             # remove everything after heading
             for el in body_container.find_all():
-                if el.get_text(strip=True).startswith("Материалы по теме", "Сейчас читают", "Источник", "Читайте также"):
+                text = el.get_text(strip=True)
+                if any(phrase in text for phrase in ["Материалы по теме", "Сейчас читают", "Источник", "Читайте также"]):
                     el.decompose(); break
             body_html = body_container.decode_contents()
 
