@@ -16,7 +16,11 @@ os.makedirs("pages")
 env = Environment(loader=FileSystemLoader("templates"))
 tpl = env.get_template("article.html")
 
-for meta in parser.fetch_list():
+articles = parser.fetch_list()
+print(f"[INFO] Найдено статей: {len(articles)}")
+
+
+for meta in articles:
     art = parser.fetch_article(meta)
     html = tpl.render(
         title=art["title"],
