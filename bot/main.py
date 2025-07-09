@@ -21,7 +21,8 @@ bot = Bot(token=BOT_TOKEN)
 cfg = yaml.safe_load(open("sources_config.yml"))["championat"]
 parser = ChampParser(cfg)
 
-fallback_image = "https://www.championat.com/static/i/svg/logo.svg"
+fallback_image = f"{WEBAPP_BASE}/logo.png"
+
 
 def proxify_image(url):
     if not url:

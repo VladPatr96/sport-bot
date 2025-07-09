@@ -11,7 +11,7 @@ parser = ChampParser(cfg)
 if os.path.exists("pages"):
     shutil.rmtree("pages")
 os.makedirs("pages/images", exist_ok=True)
-shutil.copy("assets/logo.svg", "pages/logo.svg")
+shutil.copy("assets/logo.png", "pages/logo.png")
 print("[INFO] Папка pages очищена и логотип скопирован")
 
 # Подготовка шаблона
