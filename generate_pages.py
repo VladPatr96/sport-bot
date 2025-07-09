@@ -50,9 +50,7 @@ for meta in articles:
         summary=art["summary"]
     )
 
-    fname = art["url"].rstrip("/").split("/")[-1]
-    if not fname.endswith(".html"):
-        fname += ".html"
+    fname = art["url"].rstrip("/").split("/")[-1].removesuffix(".html") + ".html"
 
     path = f"pages/{fname}"
     with open(path, "w", encoding="utf-8") as f:
