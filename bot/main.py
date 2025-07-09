@@ -23,13 +23,15 @@ parser = ChampParser(cfg)
 
 fallback_image = "https://www.championat.com/static/i/svg/logo.svg"
 
-def is_image_accessible(url):
+def proxify_image(url):
+    if not url:
+        return fallback_image
     try:
-        resp = requests.head(url, timeout=5)
-        return resp.status_code == 200
+        clean_url = url.replace("https://", "").replace("http://", "")
+        return f"https://images.weserv.nl/?url={clean_url}"
     except Exception as e:
-        logger.warning(f"[WARN] Недоступно изображение: {url} — {e}")
-        return False
+        logger.warning(f"[WARN] Ошибка проксирования изображения: {e}")
+        return fallback_image
 
 async def send_article(bot, article):
     slug = article["url"].rstrip("/").split("/")[-1]
@@ -37,11 +39,11 @@ async def send_article(bot, article):
         slug += ".html"
     wa_url = f"{WEBAPP_BASE}/{slug}"
 
-    image_path = article.get("image") or (article["images"][0] if article["images"] else None)
-    photo_url = article["images"][0] if article["images"] else fallback_image
-    if not is_image_accessible(photo_url):
-        photo_url = fallback_image
+    # Прокси-ссылка на изображение
+    photo_url = proxify_image(article["images"][0]) if article["images"] else fallback_image
+    logger.info(f"[DEBUG] photo_url = {photo_url}")
 
+    # Формирование текста
     summary = article["summary"]
     if len(summary) > 300:
         summary = summary[:297] + "..."
