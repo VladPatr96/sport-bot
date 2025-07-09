@@ -48,20 +48,21 @@ class ChampParser:
         # title
         title_el = soup.select_one(self.cfg["article_title"])
         title = title_el.get_text(strip=True) if title_el else ""
+        print(f"[DEBUG] Заголовок: {title}")
 
         # summary = first <p> inside body_container
         body_container = soup.select_one(self.cfg["article_body_container"])
         summary = ""
         if body_container:
             p = body_container.find("p")
-            summary = p.get_text(strip=True) if p else ""
+            summary = p.get_text(" ", strip=True) if p else ""
 
         # body_html (до "Материалы по теме")
         body_html = ""
         if body_container:
             # remove everything after heading
             for el in body_container.find_all():
-                if el.get_text(strip=True).startswith("Материалы по теме"):
+                if el.get_text(strip=True).startswith("Материалы по теме", "Сейчас читают", "Источник", "Читайте также"):
                     el.decompose(); break
             body_html = body_container.decode_contents()
 
