@@ -11,7 +11,7 @@ jobs:
     env:
       BOT_TOKEN:   ${{ secrets.BOT_TOKEN }}
       CHAT_ID:     ${{ secrets.CHAT_ID }}
-      WEBAPP_BASE: https://<ваш-логин>.github.io/sport-bot
+      WEBAPP_BASE: ${{ secrets.WEBAPP_BASE }}
 
     steps:
       - name: Checkout code
