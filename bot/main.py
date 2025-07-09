@@ -38,7 +38,7 @@ async def send_article(bot, article):
     wa_url = f"{WEBAPP_BASE}/{slug}"
 
     image_path = article.get("image") or (article["images"][0] if article["images"] else None)
-    photo_url = f"{WEBAPP_BASE}/{image_path}" if image_path else fallback_image
+    photo_url = article["images"][0] if article["images"] else fallback_image
     if not is_image_accessible(photo_url):
         photo_url = fallback_image
 
