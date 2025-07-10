@@ -22,7 +22,7 @@ cfg    = yaml.safe_load(open("sources_config.yml", encoding="utf-8"))["championa
 parser = ChampParser(cfg)
 
 # Фолбэк-картинка
-fallback_image = f"{WEBAPP_BASE}/logo.png"
+fallback_image = f"{WEBAPP_BASE}/logo.svg"
 
 def proxify_image(url: str) -> str:
     """Проксировать внешний URL через images.weserv.nl или вернуть fallback."""

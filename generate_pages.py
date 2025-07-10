@@ -14,7 +14,7 @@ parser = ChampParser(cfg)
 if os.path.exists("pages"):
     shutil.rmtree("pages")
 os.makedirs("pages/images", exist_ok=True)
-shutil.copy("assets/logo.png", "pages/logo.png")
+shutil.copy("assets/logo.svg", "pages/logo.svg")
 
 # Шаблон для статей
 env = Environment(loader=FileSystemLoader("templates"))
