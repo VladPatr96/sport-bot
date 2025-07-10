@@ -52,4 +52,4 @@ jobs:
 
       - name: Run Telegram bot to send new articles
         run: |
-          python main.py
+          python -m bot.main.py
