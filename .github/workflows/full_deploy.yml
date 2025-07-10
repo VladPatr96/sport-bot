@@ -1,0 +1,55 @@
+name: Build + Deploy + Send Bot
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  full:
+    runs-on: ubuntu-latest
+    env:
+      BOT_TOKEN:   ${{ secrets.BOT_TOKEN }}
+      CHAT_ID:     ${{ secrets.CHAT_ID }}
+      WEBAPP_BASE: ${{ secrets.WEBAPP_BASE }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          pip install python-telegram-bot pyyaml beautifulsoup4 jinja2 requests
+
+      - name: Copy Jinja templates
+        run: |
+          cp -R webapp/templates templates
+
+      - name: Generate static HTML pages
+        run: |
+          python generate_pages.py
+
+      - name: Add .nojekyll to support underscore files
+        run: touch pages/.nojekyll
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./pages
+          publish_branch: gh-pages
+
+      - name: Wait for GitHub Pages to be available
+        run: |
+          echo "Waiting for GitHub Pages to reflect deployment..."
+          sleep 20  # подождать 20 секунд (или больше при необходимости)
+          echo "Continuing."
+
+      - name: Run Telegram bot to send new articles
+        run: |
+          python main.py

@@ -18,10 +18,10 @@ WEBAPP_BASE  = os.environ["WEBAPP_BASE"].rstrip("/")
 
 # Инициализация бота и парсера
 bot    = Bot(token=BOT_TOKEN)
-cfg    = yaml.safe_load(open("sources_config.yml"))["championat"]
+cfg    = yaml.safe_load(open("sources_config.yml", encoding="utf-8"))["championat"]
 parser = ChampParser(cfg)
 
-# Фолбэк-картинка — локальный PNG, задеплоенный вместе с сайтом
+# Фолбэк-картинка
 fallback_image = f"{WEBAPP_BASE}/logo.png"
 
 def proxify_image(url: str) -> str:
@@ -31,14 +31,28 @@ def proxify_image(url: str) -> str:
     clean = url.replace("https://", "").replace("http://", "")
     return f"https://images.weserv.nl/?url={clean}"
 
+def is_page_available(url: str) -> bool:
+    """Проверка, доступна ли страница на GitHub Pages."""
+    try:
+        resp = requests.head(url, timeout=5)
+        return resp.status_code == 200
+    except Exception as e:
+        logger.warning(f"[WARN] Не удалось проверить URL {url}: {e}")
+        return False
+
 async def send_article(article: dict):
-    # Нормализованный slug для ссылки
+    # slug из URL
     raw  = article["url"].rstrip("/").split("/")[-1]
     slug = raw.removesuffix(".html") + ".html"
     wa_url = f"{WEBAPP_BASE}/{slug}"
     logger.info(f"[DEBUG] wa_url = {wa_url}")
 
-    # Ссылка на изображение (проксируется или fallback)
+    # Проверка доступности страницы
+    if not is_page_available(wa_url):
+        logger.warning(f"⏳ Пропускаем статью: {wa_url} ещё не доступна.")
+        return
+
+    # Прокси картинка
     img_src = article["images"][0] if article["images"] else None
     photo_url = proxify_image(img_src) if img_src else fallback_image
     logger.info(f"[DEBUG] photo_url = {photo_url}")
@@ -48,6 +62,7 @@ async def send_article(article: dict):
     if len(summary) > 300:
         summary = summary[:297] + "..."
 
+    # Сообщение
     caption = f"🏆 <b>{article['title']}</b>\n\n{summary}"
     keyboard = InlineKeyboardMarkup([[
         InlineKeyboardButton("📖 Читать полностью", web_app=WebAppInfo(url=wa_url))
@@ -74,4 +89,8 @@ async def main():
         await send_article(article)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        logger.error(f"[FATAL] Ошибка при выполнении: {e}")
+        exit(1)

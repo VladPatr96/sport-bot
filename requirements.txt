@@ -9,3 +9,4 @@ sgmllib3k==1.0.0
 soupsieve==2.7
 typing_extensions==4.14.1
 urllib3==2.5.0
+python-telegram-bot==20.7
