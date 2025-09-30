@@ -1,0 +1,93 @@
+# sources/championat/config/sources_config.yml
+
+championat:
+  # Основной URL для новостей
+  url: https://www.championat.com/news/1.html?utm_source=button&utm_medium=news
+  # Используемый метод парсинга. Для команд используется selenium.
+  method: selenium 
+  # Ограничение частоты запросов, если требуется.
+  rate_limit: 1/sec
+  # Путь к WebDriver. Обязательно укажите свой путь или удалите, если он в PATH.
+  driver_path: "F:/projects/Projects/sport-news-bot/drivers/chromedriver.exe" 
+  
+  selectors:
+    # Селекторы для списка новостей (используются в champ_parser.py)
+    page_container: "div.page-content"
+    date_group: "div.news-items__head"
+    news_item_container: "div.news-item"
+    time: "div.news-item__time"
+    list_item: "div.news-item"
+    list_item_url: "div.news-item__content a.news-item__title"
+    list_item_title: "div.news-item__content a.news-item__title"
+    article_title: "div.article-head__title, div.article-title, div.article-headline"
+    article_body: "div.article-content, div.article__content, div.material__content, div.article-text, div.article-body"
+    article_link: "div.news-item__content a.news-item__title"
+    tag: "div.news-item__content a.news-item__tag"
+    comments: "div.news-item__content a.news-item__comments"
+    article_body_container: "div#articleBody"
+    article_tags: "a.tags__item"
+    article_images: >
+      div.article-head__photo img,
+      div.content-photo img,
+      div.article-content img,
+      figure.article__figure img
+    article_videos: "div.article-content iframe, div.article-body iframe"
+    article_author: "div.article-head__info a.article-author"
+
+    # СЕЛЕКТОРЫ ДЛЯ СТРУКТУРНЫХ ДАННЫХ (для Selenium)
+    # Селекторы для sports_parser.py (используются aiohttp)
+    sport_item_selector: "li.header-menu-item[data-label]"
+    sport_link_selector: "a.js-header-menu-item-link"
+
+    # Селекторы для страниц турниров (после перехода по ссылке из меню)
+    livetable_bar_label_selector: ".livetable-bar__label" 
+    block_title_li_selector: "li.block__title"
+    block_more_a_selector: "a.block__more"
+    mc_sport_table_selector: "table.table-row-hover.mc-sport-tournament__drop-block"
+    table_item_a_selector: "a.table-item"
+    table_item_name_span_selector: "span.table-item__name"
+    
+    # Селекторы для извлечения основного имени турнира и сезона с главной страницы турнира
+    tournament_main_name_selector: "h1.entity-header__title"
+    season_select_selector: "select.js-entity-header-select1[name='year']"
+    season_option_selector: "option"
+    tag_page_tournament_link_selector: "div.entity-header__info a"
+
+    # --- Селекторы для teams_parser.py (список команд на странице турнира) ---
+    # Селектор для контейнера каждой команды в списке
+    team_item_selector: "div.teams-item"
+    # Селектор для имени команды
+    team_name_selector: "div.teams-item__name"
+    # Селектор для ссылки на страницу результатов команды (внутри team_item_selector)
+    team_link_selector: "a"
+    # Селектор для ссылки на тег команды, который находится на странице самой команды
+    team_tag_link_selector_team_page: "div.entity-header__title-link a"
+    # Селектор для сообщения "Команды не найдены"
+    no_teams_message_selector: ".message__text"
+    # Новый селектор для турнирной таблицы на главной странице турнира (как запасной вариант)
+    tournament_results_table_selector: "table.results-table"
+    # Новый селектор для элемента команды внутри турнирной таблицы
+    tournament_table_team_link_selector: "table.results-table a.table-item"
+    
+    # Селекторы для athletes_parser.py
+    player_table_selector: "table.table-responsive"
+    player_link_selector: "a"
+    player_tag_selector: "div.entity-header__title-link a"
+    
+    # Селекторы для основной страницы команды (заголовки)
+    team_main_name_selector: "div.entity-header__title-name a[data-champ='tournaments::header::name']"
+
+    # Переопределения для спортивных slug-ов
+    stat_slug_overrides:
+      boxing: "mma"
+      figure-skating: "fs"
+      tennis: "tennis"
+      tennis-grandslam: "tennis"
+
+    # Прочие селекторы
+    live_score_selector: "div.mc-sport-game__main"
+    game_list_table_selector: "div.table-row-hover.table-full-width.mc-sport-game-list__list"
+    game_list_item_selector: "a.table-item"
+    game_link_selector: "div.mc-sport-game__main a"
+    game_tag_selector: "div.mc-sport-game__main a.tags__item"
+

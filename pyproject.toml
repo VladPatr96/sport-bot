@@ -1,0 +1,16 @@
+[project]
+name = "prosport"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.pytest.ini_options]
+addopts = "-q --maxfail=1 --disable-warnings"
+testpaths = ["tests"]
+
+[project.scripts]
+prosport = "tools.prosport_cli:app"

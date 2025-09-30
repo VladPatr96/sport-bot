@@ -1,0 +1,13 @@
+name-template: "v$NEXT_PATCH_VERSION"
+tag-template: "v$NEXT_PATCH_VERSION"
+categories:
+  - title: "✨ Фичи"
+    labels: ["feat"]
+  - title: "🐛 Исправления"
+    labels: ["fix"]
+  - title: "🧼 Прочее"
+    labels: ["chore","refactor","docs","test"]
+change-template: "- $TITLE (#$NUMBER) @$AUTHOR"
+template: |
+  ## Изменения
+  $CHANGES

@@ -10,3 +10,24 @@ __pycache__/
 # IDE
 .vscode/
 .idea/
+
+database/*.db
+database/*.db-shm
+database/*.db-wal
+out/*.json
+*.ipynb_checkpoints/
+.mypy_cache/
+.ruff_cache/
+__pycache__/
+drivers/
+
+
+database/prosport.db, database/prosport.db-wal, database/prosport.db-shm
+
+drivers/chromedriver.exe
+
+out/*.json
+
+parsed_news.json
+
+tmp_v.txt

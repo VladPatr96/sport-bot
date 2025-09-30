@@ -1,0 +1,891 @@
+{
+  "generated_at": "2025-09-30T02:05:42.609071Z",
+  "tables": [
+    {
+      "table": "sports",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "slug",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "url",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [],
+      "rows": 10
+    },
+    {
+      "table": "tournaments",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "url",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "sport_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "season",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "tournaments_url",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "type",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [
+        {
+          "table": "sports",
+          "from": "sport_id",
+          "to": "id"
+        }
+      ],
+      "rows": 385
+    },
+    {
+      "table": "teams",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "alias",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "url",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "external_id",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "tournament_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "tag_url",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [
+        {
+          "table": "tournaments",
+          "from": "tournament_id",
+          "to": "id"
+        }
+      ],
+      "rows": 3501
+    },
+    {
+      "table": "news",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "url",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "content",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "source",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "published_at",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "lang",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "is_published",
+          "type": "BOOLEAN",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "image_url",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "image_urls",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "video_urls",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "published",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "images",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "videos",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [],
+      "rows": 13244
+    },
+    {
+      "table": "tags",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "url",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "type",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "entity_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "sport_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "tournament_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "team_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "athlete_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [],
+      "rows": 4397
+    },
+    {
+      "table": "news_article_tags",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "news_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "tag_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [
+        {
+          "table": "tags",
+          "from": "tag_id",
+          "to": "id"
+        },
+        {
+          "table": "news",
+          "from": "news_id",
+          "to": "id"
+        }
+      ],
+      "rows": 39357
+    },
+    {
+      "table": "entities",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "type",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "lang",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [],
+      "rows": 0
+    },
+    {
+      "table": "news_entities",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "news_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "entity_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "confidence",
+          "type": "REAL",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [
+        {
+          "table": "entities",
+          "from": "entity_id",
+          "to": "id"
+        },
+        {
+          "table": "news",
+          "from": "news_id",
+          "to": "id"
+        }
+      ],
+      "rows": 0
+    },
+    {
+      "table": "entity_relations",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "parent_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "child_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "relation",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [
+        {
+          "table": "entities",
+          "from": "child_id",
+          "to": "id"
+        },
+        {
+          "table": "entities",
+          "from": "parent_id",
+          "to": "id"
+        }
+      ],
+      "rows": 0
+    },
+    {
+      "table": "entity_aliases",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "entity_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "alias",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "lang",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [
+        {
+          "table": "entities",
+          "from": "entity_id",
+          "to": "id"
+        }
+      ],
+      "rows": 0
+    },
+    {
+      "table": "failed_team_tournaments",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "team_name",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "tournament_name",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "team_url",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "error_message",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "timestamp",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [],
+      "rows": 0
+    },
+    {
+      "table": "users",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "telegram_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "username",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "first_name",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "last_name",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [],
+      "rows": 0
+    },
+    {
+      "table": "user_views",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "news_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "viewed_at",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [
+        {
+          "table": "news",
+          "from": "news_id",
+          "to": "id"
+        },
+        {
+          "table": "users",
+          "from": "user_id",
+          "to": "id"
+        }
+      ],
+      "rows": 0
+    },
+    {
+      "table": "user_interests",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "entity_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "interest_level",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [
+        {
+          "table": "entities",
+          "from": "entity_id",
+          "to": "id"
+        },
+        {
+          "table": "users",
+          "from": "user_id",
+          "to": "id"
+        }
+      ],
+      "rows": 0
+    },
+    {
+      "table": "athletes",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "url",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "team_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "external_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "tag_url",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "tournament_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "type",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [
+        {
+          "table": "tournaments",
+          "from": "tournament_id",
+          "to": "id"
+        },
+        {
+          "table": "teams",
+          "from": "team_id",
+          "to": "id"
+        }
+      ],
+      "rows": 48001
+    },
+    {
+      "table": "failed_parsing_attempts",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "entity_type",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "entity_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "url",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "error_message",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "timestamp",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [],
+      "rows": 1239
+    },
+    {
+      "table": "team_tournaments",
+      "columns": [
+        {
+          "name": "team_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": true
+        },
+        {
+          "name": "tournament_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": true
+        },
+        {
+          "name": "season",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "is_primary",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "source",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "confidence",
+          "type": "REAL",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [
+        {
+          "table": "tournaments",
+          "from": "tournament_id",
+          "to": "id"
+        },
+        {
+          "table": "teams",
+          "from": "team_id",
+          "to": "id"
+        }
+      ],
+      "rows": 3909
+    },
+    {
+      "table": "athlete_tournaments",
+      "columns": [
+        {
+          "name": "athlete_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": true
+        },
+        {
+          "name": "tournament_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": true
+        },
+        {
+          "name": "season",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "is_primary",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "source",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "confidence",
+          "type": "REAL",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [
+        {
+          "table": "tournaments",
+          "from": "tournament_id",
+          "to": "id"
+        },
+        {
+          "table": "athletes",
+          "from": "athlete_id",
+          "to": "id"
+        }
+      ],
+      "rows": 48210
+    }
+  ]
+}
