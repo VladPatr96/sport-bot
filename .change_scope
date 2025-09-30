@@ -1,5 +1,13 @@
 # .change_scope
-work/categorization.py
-scripts/categorize_articles.py
-tests/test_categorization.py
-src/prosport/__init__.py
+README.md
+.gitignore
+drivers/README.md
+docs/PROMPT_AI.md
+docs/TASKS_AI.md
+tools/generate_prompt.py
+tools/generate_tasks.py
+tools/prosport_cli.py
+db/gen_manifest.py
+src/prosport/db/api.py
+.github/workflows/project-health.yml
+tests/test_db_contract.py

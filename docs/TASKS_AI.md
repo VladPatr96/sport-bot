@@ -1,53 +1,23 @@
 # PROSPORT • ЗАДАЧИ ДЛЯ ИИ (автоген)
-_сгенерировано: 2025-09-30T02:06:32Z_
+_сгенерировано: 2025-09-30T03:50:45Z_
 
 ## Изменённые файлы
-- `.github/workflows/full_deploy.yml`
-- `.gitignore`
-- `bot/__init__.py`
-- `bot/__main__.py`
-- `bot/main.py`
-- `generate_pages.py`
-- `ngrok.exe`
-- `parsers/champ_parser.py`
-- `requirements.txt`
-- `sources_config.yml`
-- `utils/__init__.py`
-- `utils/render.py`
-- `webapp/__init__.py`
-- `webapp/__main__.py`
-- `webapp/app.py`
-- `webapp/templates/article.html`
 - `.change_scope`
-- `.github/release-drafter.yml`
-- `.github/workflows/release-drafter.yml`
-- `categorizer/`
-- `config/`
-- `database/`
-- `db/`
-- `docs/`
-- `logos/`
-- `notebooks/`
-- `parsed_news.json`
-- `parsers/main_parser_runner.py`
-- `parsers/sources/`
-- `parsers/utils/`
-- `pyproject.toml`
-- `scheduler/`
-- `scripts/`
-- `src/`
+- `.gitignore`
+- `db/manifest.json`
+- `docs/PROMPT_AI.md`
+- `docs/TASKS_AI.md`
 - `sync_champ_news.py`
-- `sync_champ_news_work.py`
-- `telegram_bot/`
-- `tests/`
-- `tmp_v.txt`
-- `tools/`
-- `ts.py`
-- `work/`
+- `.github/workflows/project-health.yml`
+- `README.md`
+- `scripts/sync_champ_news.py`
+- `src/prosport/db/`
+- `tests/test_db_contract.py`
 
 ## Модули в работе
 - **categorization.py** (`work/categorization.py`) — цель: -; тесты: -
 - **__init__.py** (`src/prosport/__init__.py`) — цель: -; тесты: -
+- **api.py** (`src/prosport/db/api.py`) — цель: -; тесты: -
 
 ## Что сделать
 1) Довести изменённые файлы до зелёных тестов.
