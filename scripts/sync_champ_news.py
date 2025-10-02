@@ -21,6 +21,9 @@ from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 from database.prosport_db import init_db
 from parsers.sources.championat.parsers.champ_parser import ChampParserSelenium
 
+from pathlib import Path
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
 
 
 # ===================== Текст/дата =====================
@@ -160,11 +163,8 @@ def get_anchor_from_db(conn: sqlite3.Connection, f: Dict[str, str]) -> Optional[
     return normalize_url(anchor_url)
 
 # ===================== Конфиг =====================
-def load_champ_config() -> Optional[Dict[str, Any]]:
-    config_path = os.path.join(
-        os.path.dirname(__file__),
-        "parsers", "sources", "championat", "config", "sources_config.yml"
-    )
+def load_champ_config() -> dict | None:
+    config_path = PROJECT_ROOT / "parsers" / "sources" / "championat" / "config" / "sources_config.yml"
     if not os.path.exists(config_path):
         print(f"❌ Конфиг не найден: {config_path}")
         return None
@@ -540,7 +540,7 @@ async def collect_until_anchor_by_url(
 
 # ===================== Основной цикл =====================
 async def sync_news_since_anchor_url(max_pages: int = 50, manual_anchor: Optional[str] = None, dry_run: bool = False):
-    db_path = os.path.join(os.path.dirname(__file__), "database", "prosport.db")
+    db_path = PROJECT_ROOT / "database" / "prosport.db"
 
     try:
         init_db(db_path)
