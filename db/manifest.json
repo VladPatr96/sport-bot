@@ -1,5 +1,5 @@
 {
-  "generated_at": "2025-09-30T03:50:24.038615Z",
+  "generated_at": "2025-10-29T03:53:49.469057Z",
   "tables": [
     {
       "table": "sports",
@@ -237,7 +237,7 @@
         }
       ],
       "foreign_keys": [],
-      "rows": 13244
+      "rows": 29454
     },
     {
       "table": "tags",
@@ -298,7 +298,7 @@
         }
       ],
       "foreign_keys": [],
-      "rows": 4397
+      "rows": 7317
     },
     {
       "table": "news_article_tags",
@@ -334,7 +334,7 @@
           "to": "id"
         }
       ],
-      "rows": 39357
+      "rows": 126585
     },
     {
       "table": "entities",
@@ -365,7 +365,7 @@
         }
       ],
       "foreign_keys": [],
-      "rows": 0
+      "rows": 3252
     },
     {
       "table": "news_entities",
@@ -477,6 +477,36 @@
           "type": "TEXT",
           "notnull": false,
           "pk": false
+        },
+        {
+          "name": "alias_normalized",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "entity_type",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "source",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "type",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
         }
       ],
       "foreign_keys": [
@@ -486,7 +516,7 @@
           "to": "id"
         }
       ],
-      "rows": 0
+      "rows": 3252
     },
     {
       "table": "failed_team_tournaments",
@@ -825,7 +855,7 @@
           "to": "id"
         }
       ],
-      "rows": 3909
+      "rows": 3954
     },
     {
       "table": "athlete_tournaments",
@@ -885,7 +915,478 @@
           "to": "id"
         }
       ],
-      "rows": 48210
+      "rows": 48221
+    },
+    {
+      "table": "players",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "team_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "birthdate",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "country",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [
+        {
+          "table": "teams",
+          "from": "team_id",
+          "to": "id"
+        }
+      ],
+      "rows": 0
+    },
+    {
+      "table": "news_entity_assignments",
+      "columns": [
+        {
+          "name": "news_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "sport_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "tournament_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "team_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "player_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [
+        {
+          "table": "news",
+          "from": "news_id",
+          "to": "id"
+        }
+      ],
+      "rows": 247
+    },
+    {
+      "table": "stories",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [],
+      "rows": 37
+    },
+    {
+      "table": "story_articles",
+      "columns": [
+        {
+          "name": "story_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": true
+        },
+        {
+          "name": "news_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": true
+        }
+      ],
+      "foreign_keys": [
+        {
+          "table": "news",
+          "from": "news_id",
+          "to": "id"
+        },
+        {
+          "table": "stories",
+          "from": "story_id",
+          "to": "id"
+        }
+      ],
+      "rows": 170
+    },
+    {
+      "table": "publish_queue",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "item_type",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "item_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "priority",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "scheduled_at",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "enqueued_at",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "dedup_key",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "error",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "message_id",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "sent_at",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [],
+      "rows": 20
+    },
+    {
+      "table": "content_fingerprints",
+      "columns": [
+        {
+          "name": "news_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "title_sig",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "entity_sig",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [],
+      "rows": 7567
+    },
+    {
+      "table": "publish_edits",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "item_type",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "item_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "action",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "message_id",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "reply_msg_id",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "old_text",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "new_text",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "mode",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "error",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [],
+      "rows": 0
+    },
+    {
+      "table": "publish_map",
+      "columns": [
+        {
+          "name": "item_type",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": true
+        },
+        {
+          "name": "item_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": true
+        },
+        {
+          "name": "message_id",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "sent_at",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "text",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "mode",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [],
+      "rows": 0
+    },
+    {
+      "table": "digests",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": true
+        },
+        {
+          "name": "period",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "since_utc",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "until_utc",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "message_id",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        },
+        {
+          "name": "notes",
+          "type": "TEXT",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [],
+      "rows": 0
+    },
+    {
+      "table": "digest_items",
+      "columns": [
+        {
+          "name": "digest_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": true
+        },
+        {
+          "name": "rank",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": true
+        },
+        {
+          "name": "story_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "pk": false
+        },
+        {
+          "name": "total_articles",
+          "type": "INTEGER",
+          "notnull": false,
+          "pk": false
+        }
+      ],
+      "foreign_keys": [],
+      "rows": 0
     }
   ]
 }
