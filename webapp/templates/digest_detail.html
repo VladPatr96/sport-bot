@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-0">{{ digest.title }}</h1>
+        <div class="text-muted small">ID {{ digest.id }} • {{ digest.period }} • {{ digest.since_utc }} — {{ digest.until_utc }}</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary" href="/digests/{{ digest.id }}/download.html">Download HTML</a>
+        <a class="btn btn-outline-secondary" href="/digests/{{ digest.id }}/download.md">Download MD</a>
+        <button class="btn btn-success" type="button" onclick="sendDigest({{ digest.id }})">Send to Telegram</button>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <strong>HTML preview</strong>
+            </div>
+            <div class="card-body">
+                <div class="digest-html-preview">
+                    {{ digest_html | safe }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>Markdown</strong>
+            </div>
+            <div class="card-body">
+                <pre class="history-pre mb-0" style="max-height: 400px;">{{ digest_markdown }}</pre>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <strong>Stories ({{ story_count }})</strong>
+            </div>
+            <ul class="list-group list-group-flush">
+            {% for item in dataset.items %}
+                <li class="list-group-item">
+                    <div class="fw-semibold">{{ loop.index }}. {{ item.title }}</div>
+                    <div class="text-muted small">
+                        {% if item.tournament_count %}<span class="me-1">🏆 {{ item.tournament_count }}</span>{% endif %}
+                        {% if item.team_count %}<span class="me-1">🏟️ {{ item.team_count }}</span>{% endif %}
+                        {% if item.player_count %}<span class="me-1">👤 {{ item.player_count }}</span>{% endif %}
+                        <span class="me-1">📰 {{ item.article_count }}</span>
+                    </div>
+                    <ul class="mt-2">
+                        {% for article in item.articles %}
+                            <li>
+                                {% if article.url %}
+                                    <a href="{{ article.url }}" target="_blank">{{ article.title }}</a>
+                                {% else %}
+                                    {{ article.title }}
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+            {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    function sendDigest(id) {
+        if (!confirm('Send digest #' + id + ' to Telegram?')) {
+            return;
+        }
+        fetch(`/api/digests/${id}/send`, { method: 'POST' })
+        .then(async (response) => {
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.detail || response.statusText);
+            }
+            alert(`Sent! message_id=${data.root_message_id} parts=${data.messages.length}`);
+            window.location.reload();
+        })
+        .catch((err) => alert('Send error: ' + err.message));
+    }
+</script>
+{% endblock %}

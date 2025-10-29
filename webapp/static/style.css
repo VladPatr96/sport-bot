@@ -1,0 +1,35 @@
+body {
+    background-color: #f8f9fa;
+}
+
+table td, table th {
+    vertical-align: middle;
+}
+
+.preview-chunk {
+    background-color: #f5f5f5;
+    border: 1px solid #e0e0e0;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    white-space: pre-wrap;
+}
+
+mark {
+    background-color: #f8d57c;
+    padding: 0;
+}
+
+.history-pre {
+    background-color: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 0.25rem;
+    padding: 0.5rem;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow: auto;
+}
+
+.digest-html-preview {
+    max-height: 500px;
+    overflow: auto;
+}

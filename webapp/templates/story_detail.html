@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Story #{{ story_id }}</h1>
+    <div class="d-flex flex-wrap gap-2 justify-content-end">
+        <button class="btn btn-outline-primary" onclick="previewStory({{ story_id }})">Preview</button>
+        <button class="btn btn-success" onclick="publishStory({{ story_id }}, false)">Publish now</button>
+        <button class="btn btn-outline-secondary" onclick="openAppendModal()">Append update</button>
+        <button class="btn btn-outline-dark" onclick="openEditModal()">Edit main</button>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h2 class="h5 mb-0">{{ title }}</h2>
+    </div>
+</div>
+
+<h3 class="h5 mb-3">Recent articles</h3>
+{% if articles %}
+<div class="list-group mb-4">
+    {% for article in articles %}
+    <a href="{{ article.url }}" class="list-group-item list-group-item-action" target="_blank">
+        <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1">{{ article.title }}</h5>
+            <small class="text-muted">{{ article.published }}</small>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% if hidden_articles %}
+<h4 class="h6 text-muted">Скрытые почти дубли (≈ {{ hidden_count }})</h4>
+<div class="list-group mb-4">
+    {% for article in hidden_articles %}
+    <div class="list-group-item">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <span class="text-warning" title="{{ article.reason }}">≈</span>
+                {% if article.url %}
+                    <a href="{{ article.url }}" class="text-decoration-none" target="_blank">{{ article.title }}</a>
+                {% else %}
+                    {{ article.title }}
+                {% endif %}
+                <div class="small text-muted">{{ article.reason }}</div>
+            </div>
+            {% if article.duplicate_of %}
+                <small class="text-muted ms-2">дубликат #{{ article.duplicate_of }}</small>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% else %}
+<p class="text-muted">No articles found.</p>
+{% endif %}
+
+<h3 class="h5 mt-5 mb-3">История правок ({{ publish_history_count }})</h3>
+{% if publish_history %}
+<div class="table-responsive mb-4">
+    <table class="table table-sm align-middle">
+        <thead>
+            <tr>
+                <th>Время</th>
+                <th>Действие</th>
+                <th>Message</th>
+                <th>Reply</th>
+                <th>Содержимое</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for entry in publish_history %}
+            <tr>
+                <td class="text-muted small">{{ entry.created_at }}</td>
+                <td>
+                    <span class="badge {% if entry.action == 'edit' %}bg-primary{% else %}bg-info text-dark{% endif %} text-uppercase">{{ entry.action }}</span>
+                    {% if entry.error %}
+                        <span class="badge bg-danger ms-1" title="{{ entry.error }}">error</span>
+                    {% endif %}
+                </td>
+                <td class="small">{{ entry.message_id or '—' }}</td>
+                <td class="small">{{ entry.reply_msg_id or '—' }}</td>
+                <td>
+                    {% if entry.action == 'edit' %}
+                        <div class="history-block">
+                            <div class="text-muted small">before:</div>
+                            <pre class="history-pre">{{ entry.old_text or '(unknown)' }}</pre>
+                            <div class="text-muted small mt-2">after:</div>
+                            <pre class="history-pre">{{ entry.new_text or '' }}</pre>
+                        </div>
+                    {% else %}
+                        <pre class="history-pre">{{ entry.new_text or '' }}</pre>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-muted">История правок пока пустая.</p>
+{% endif %}
+
+<a href="/" class="btn btn-link">&larr; Back to list</a>
+
+<!-- Append Modal -->
+<div class="modal fade" id="appendModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Append update</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label" for="appendText">Текст обновления</label>
+                    <textarea class="form-control" id="appendText" rows="6" placeholder="Введите текст обновления..."></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="appendFromRender">Или выбрать авто-рендер</label>
+                    <select class="form-select" id="appendFromRender">
+                        <option value="">— без авто-рендера —</option>
+                        <option value="short">Короткий (последние 2 статьи)</option>
+                        <option value="full">Полный (до 5 статей)</option>
+                    </select>
+                </div>
+                <div id="appendResult" class="alert alert-info d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary" onclick="submitAppend(true)">Preview</button>
+                <button class="btn btn-primary" onclick="submitAppend(false)">Send update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit main message</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label" for="editText">Новый текст сообщения</label>
+                    <textarea class="form-control" id="editText" rows="8">{{ publish_map.text if publish_map else '' }}</textarea>
+                </div>
+                <div id="editResult" class="alert alert-info d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary" onclick="submitEdit(true)">Preview</button>
+                <button class="btn btn-primary" onclick="submitEdit(false)">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const storyId = {{ story_id }};
+    const publishMode = "{{ publish_mode }}";
+    const defaultMessageId = "{{ publish_map.message_id if publish_map else '' }}";
+
+    const appendModal = new bootstrap.Modal(document.getElementById('appendModal'));
+    const editModal = new bootstrap.Modal(document.getElementById('editModal'));
+
+    function openAppendModal() {
+        document.getElementById('appendResult').classList.add('d-none');
+        appendModal.show();
+    }
+
+    function openEditModal() {
+        document.getElementById('editResult').classList.add('d-none');
+        editModal.show();
+    }
+
+    function submitAppend(dryRun) {
+        const textValue = document.getElementById('appendText').value.trim();
+        const fromRender = document.getElementById('appendFromRender').value;
+        const params = new URLSearchParams();
+        params.set('dry_run', dryRun ? '1' : '0');
+        params.set('mode', publishMode || 'html');
+        if (textValue) {
+            params.set('text', textValue);
+        } else if (fromRender) {
+            params.set('from_render', fromRender);
+        } else {
+            alert('Введите текст или выберите авто-рендер.');
+            return;
+        }
+
+        fetch(`/api/stories/${storyId}/append?${params.toString()}`, {
+            method: 'POST'
+        })
+        .then(async (response) => {
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.detail || response.statusText);
+            }
+            if (data.status === 'preview') {
+                const result = document.getElementById('appendResult');
+                result.classList.remove('d-none');
+                result.textContent = data.text || '(empty)';
+            } else {
+                appendModal.hide();
+                alert(`Отправлено! reply_msg_id=${data.reply_msg_id || '(unknown)'}`);
+                window.location.reload();
+            }
+        })
+        .catch((err) => {
+            alert(`Ошибка: ${err.message}`);
+        });
+    }
+
+    function submitEdit(dryRun) {
+        const textValue = document.getElementById('editText').value.trim();
+        if (!textValue) {
+            alert('Введите текст для редактирования.');
+            return;
+        }
+        const params = new URLSearchParams();
+        params.set('dry_run', dryRun ? '1' : '0');
+        params.set('mode', publishMode || 'html');
+
+        fetch(`/api/stories/${storyId}/edit?${params.toString()}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ text: textValue })
+        })
+        .then(async (response) => {
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.detail || response.statusText);
+            }
+            if (data.status === 'preview') {
+                const result = document.getElementById('editResult');
+                result.classList.remove('d-none');
+                result.innerHTML = '';
+                const oldLabel = document.createElement('div');
+                oldLabel.className = 'text-muted small';
+                oldLabel.textContent = 'old:';
+                const oldPre = document.createElement('pre');
+                oldPre.className = 'history-pre mb-2';
+                oldPre.textContent = data.old_text || '(unknown)';
+                const newLabel = document.createElement('div');
+                newLabel.className = 'text-muted small mt-2';
+                newLabel.textContent = 'new:';
+                const newPre = document.createElement('pre');
+                newPre.className = 'history-pre';
+                newPre.textContent = data.new_text || '(empty)';
+                result.appendChild(oldLabel);
+                result.appendChild(oldPre);
+                result.appendChild(newLabel);
+                result.appendChild(newPre);
+            } else {
+                editModal.hide();
+                alert(`Сообщение обновлено (message_id=${data.message_id}).`);
+                window.location.reload();
+            }
+        })
+        .catch((err) => {
+            alert(`Ошибка: ${err.message}`);
+        });
+    }
+</script>
+{% endblock %}

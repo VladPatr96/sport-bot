@@ -6,6 +6,10 @@ venv/
 __pycache__/
 *.py[cod]
 *.log
+*.patch
+.pytest_cache/
+.coverage
+htmlcov/
 
 # IDE
 .vscode/
@@ -14,9 +18,15 @@ __pycache__/
 database/*.db
 database/*.db-shm
 database/*.db-wal
+database/*.db-journal
+database/logs/
 out/*.json
 *.ipynb_checkpoints/
 .mypy_cache/
 .ruff_cache/
 __pycache__/
 drivers/
+database/logs/          # Логи категоризатора
+*.patch                 # Патчи
+.pytest_cache/          # Pytest артефакты
+*.db-journal            # SQLite журналы

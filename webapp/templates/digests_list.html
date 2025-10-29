@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Digests</h1>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <strong>Create digest</strong>
+    </div>
+    <div class="card-body">
+        <form id="digestForm" class="row g-3">
+            <div class="col-md-2">
+                <label class="form-label" for="period">Period</label>
+                <select class="form-select" id="period" name="period">
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="since">Since (UTC)</label>
+                <input class="form-control" type="date" id="since" name="since" value="{{ defaults.daily_since }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="until">Until (UTC)</label>
+                <input class="form-control" type="date" id="until" name="until" value="{{ defaults.daily_until }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="limit">Stories limit</label>
+                <input class="form-control" type="number" id="limit" name="limit" min="1" max="50" value="25">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <div class="btn-group w-100" role="group">
+                    <button class="btn btn-outline-secondary" type="button" onclick="previewDigest()">Preview</button>
+                    <button class="btn btn-primary" type="button" onclick="createDigest()">Create</button>
+                </div>
+            </div>
+        </form>
+        <div id="digestPreview" class="mt-3 d-none">
+            <ul class="nav nav-tabs" id="previewTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="preview-html-tab" data-bs-toggle="tab" data-bs-target="#preview-html" type="button" role="tab">HTML</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="preview-md-tab" data-bs-toggle="tab" data-bs-target="#preview-md" type="button" role="tab">Markdown</button>
+                </li>
+            </ul>
+            <div class="tab-content border border-top-0 p-3" id="previewTabsContent">
+                <div class="tab-pane fade show active" id="preview-html" role="tabpanel">
+                    <div id="previewHtmlContent"></div>
+                </div>
+                <div class="tab-pane fade" id="preview-md" role="tabpanel">
+                    <pre id="previewMdContent" class="history-pre mb-0"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <strong>Existing digests</strong>
+    </div>
+    <div class="card-body">
+        <form class="row g-3 mb-3">
+            <div class="col-md-2">
+                <select class="form-select" name="period">
+                    <option value="">All periods</option>
+                    <option value="daily" {% if filters.period == 'daily' %}selected{% endif %}>Daily</option>
+                    <option value="weekly" {% if filters.period == 'weekly' %}selected{% endif %}>Weekly</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <input class="form-control" type="text" name="since" placeholder="Since (YYYY-MM-DD)" value="{{ filters.since }}">
+            </div>
+            <div class="col-md-3">
+                <input class="form-control" type="text" name="until" placeholder="Until (YYYY-MM-DD)" value="{{ filters.until }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button class="btn btn-outline-secondary w-100" type="submit">Apply filters</button>
+            </div>
+        </form>
+
+        {% if digests %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Period</th>
+                        <th>Window</th>
+                        <th>Stories</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for digest in digests %}
+                    <tr>
+                        <td>{{ digest.id }}</td>
+                        <td>{{ digest.title }}</td>
+                        <td>{{ digest.period }}</td>
+                        <td class="text-muted small">{{ digest.since }} — {{ digest.until }}</td>
+                        <td>{{ digest.story_count }}</td>
+                        <td>
+                            <span class="badge {% if digest.status == 'sent' %}bg-success{% elif digest.status == 'ready' %}bg-info text-dark{% else %}bg-danger{% endif %}">
+                                {{ digest.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <a class="btn btn-sm btn-outline-primary me-1" href="/digests/{{ digest.id }}">View</a>
+                            <a class="btn btn-sm btn-outline-secondary me-1" href="/digests/{{ digest.id }}/download.html">HTML</a>
+                            <a class="btn btn-sm btn-outline-secondary me-1" href="/digests/{{ digest.id }}/download.md">Markdown</a>
+                            <button class="btn btn-sm btn-success" type="button" onclick="sendDigest({{ digest.id }})">Send</button>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">No digests yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function collectFormData() {
+        const form = document.getElementById('digestForm');
+        const formData = new FormData(form);
+        return {
+            period: formData.get('period'),
+            since: formData.get('since'),
+            until: formData.get('until'),
+            limit: formData.get('limit'),
+        };
+    }
+
+    function ensureDatesForPeriod(data) {
+        if (!data.since || !data.until) {
+            if (data.period === 'weekly') {
+                data.since = "{{ defaults.weekly_since }}";
+                data.until = "{{ defaults.weekly_until }}";
+            } else {
+                data.since = "{{ defaults.daily_since }}";
+                data.until = "{{ defaults.daily_until }}";
+            }
+        }
+        return data;
+    }
+
+    function previewDigest() {
+        let payload = ensureDatesForPeriod(collectFormData());
+        fetch(`/api/digests?dry_run=1`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(async (response) => {
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.detail || response.statusText);
+            }
+            if (data.status !== 'preview') {
+                throw new Error('Unexpected response');
+            }
+            document.getElementById('previewHtmlContent').innerHTML = data.html ? data.html : '<p class="text-muted">Empty</p>';
+            document.getElementById('previewMdContent').textContent = data.markdown || '';
+            document.getElementById('digestPreview').classList.remove('d-none');
+        })
+        .catch((err) => {
+            alert('Preview error: ' + err.message);
+        });
+    }
+
+    function createDigest() {
+        let payload = ensureDatesForPeriod(collectFormData());
+        fetch(`/api/digests`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(async (response) => {
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.detail || response.statusText);
+            }
+            alert(`Digest created (id=${data.digest_id}, stories=${data.count})`);
+            window.location.reload();
+        })
+        .catch((err) => alert('Create error: ' + err.message));
+    }
+
+    function sendDigest(id) {
+        if (!confirm('Send digest #' + id + ' to Telegram?')) {
+            return;
+        }
+        fetch(`/api/digests/${id}/send`, { method: 'POST' })
+        .then(async (response) => {
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.detail || response.statusText);
+            }
+            alert(`Sent! message_id=${data.root_message_id} parts=${data.messages.length}`);
+            window.location.reload();
+        })
+        .catch((err) => alert('Send error: ' + err.message));
+    }
+</script>
+{% endblock %}

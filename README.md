@@ -2,27 +2,27 @@
 
 Бот и парсеры спортивных новостей + Telegram + простая web-прослойка.
 
-## Быстрый старт
+## Quickstart
 
 ```bash
-# 1) создать и активировать venv (Windows PowerShell)
 python -m venv .venv
-.venv\Scripts\Activate.ps1
-
-# 2) зависимости
+.venv\Scripts\activate (Win) / source .venv/bin/activate (Linux/Mac)
 pip install -r requirements.txt
+```
 
-# 3) паспорт БД + автопромт/таски
+## Подготовка окружения
+
+```bash
+# 1) Генерация БД + промптов/тасков
 python db/gen_manifest.py database/prosport.db
 python tools/generate_prompt.py
 python tools/generate_tasks.py
 
-# 4) проверки качества
+# 2) Прогон проверок
 ruff .
 mypy src
 pytest -q
 ```
-
 
 **Title:** chore: project health — README, gitignore, DB API, CI, AI docs, contracts test
 
