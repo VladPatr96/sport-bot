@@ -1,0 +1,42 @@
+name: Project Health
+on: [push, pull_request]
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt || true
+          pip install ruff mypy pytest
+
+      - name: Generate DB manifest (best-effort)
+        run: |
+          python db/gen_manifest.py database/prosport.db || true
+
+      - name: Generate AI docs
+        run: |
+          python tools/generate_prompt.py || true
+          python tools/generate_tasks.py  || true
+
+      - name: Lint / Types / Tests
+        run: |
+          ruff . || true
+          mypy src || true
+          pytest -q || true
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-health
+          path: |
+            docs/PROMPT_AI.md
+            docs/TASKS_AI.md
+            db/manifest.json

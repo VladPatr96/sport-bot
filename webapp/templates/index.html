@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-2 mb-lg-0">Истории</h1>
+    <div class="text-muted small">Найдено: {{ pagination.total }}</div>
+</div>
+
+<form class="row g-3 align-items-end mb-4" method="get">
+    <input type="hidden" name="page" value="1">
+    <div class="col-12 col-md-4 col-lg-3">
+        <label class="form-label" for="q">Поиск по заголовку</label>
+        <input class="form-control" type="search" id="q" name="q" value="{{ filters.q }}" placeholder="овечкин, плей-офф…">
+    </div>
+    <div class="col-6 col-md-3 col-lg-2">
+        <label class="form-label" for="sport">Вид спорта</label>
+        <select class="form-select" id="sport" name="sport">
+            <option value="">Любой</option>
+            {% for value, name, count in entity_options.sport %}
+                <option value="{{ value }}" {% if filters.sport == value %}selected{% endif %}>{{ name }} ({{ count }})</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-6 col-md-3 col-lg-2">
+        <label class="form-label" for="tournament">Турнир</label>
+        <select class="form-select" id="tournament" name="tournament">
+            <option value="">Любой</option>
+            {% for value, name, count in entity_options.tournament %}
+                <option value="{{ value }}" {% if filters.tournament == value %}selected{% endif %}>{{ name }} ({{ count }})</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-6 col-md-3 col-lg-2">
+        <label class="form-label" for="team">Команда</label>
+        <select class="form-select" id="team" name="team">
+            <option value="">Любая</option>
+            {% for value, name, count in entity_options.team %}
+                <option value="{{ value }}" {% if filters.team == value %}selected{% endif %}>{{ name }} ({{ count }})</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-6 col-md-3 col-lg-2">
+        <label class="form-label" for="player">Игрок</label>
+        <select class="form-select" id="player" name="player">
+            <option value="">Любой</option>
+            {% for value, name, count in entity_options.player %}
+                <option value="{{ value }}" {% if filters.player == value %}selected{% endif %}>{{ name }} ({{ count }})</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-6 col-md-3 col-lg-2">
+        <label class="form-label" for="since">Обновлено с</label>
+        <input class="form-control" type="text" id="since" name="since" value="{{ filters.since }}" placeholder="2025-10-10T00:00:00">
+    </div>
+    <div class="col-6 col-md-3 col-lg-2">
+        <label class="form-label" for="until">Обновлено по</label>
+        <input class="form-control" type="text" id="until" name="until" value="{{ filters.until }}" placeholder="2025-10-17T23:59:59">
+    </div>
+    <div class="col-6 col-md-3 col-lg-2">
+        <label class="form-label" for="has_neardups">Почти дубли</label>
+        <select class="form-select" id="has_neardups" name="has_neardups">
+            <option value="" {% if not filters.has_neardups_value %}selected{% endif %}>Любые</option>
+            <option value="true" {% if filters.has_neardups_value == 'true' %}selected{% endif %}>Есть скрытые</option>
+            <option value="false" {% if filters.has_neardups_value == 'false' %}selected{% endif %}>Без дублей</option>
+        </select>
+    </div>
+    <div class="col-6 col-md-3 col-lg-2">
+        <label class="form-label" for="in_queue">В очереди</label>
+        <select class="form-select" id="in_queue" name="in_queue">
+            <option value="" {% if not filters.in_queue_value %}selected{% endif %}>Любые</option>
+            <option value="true" {% if filters.in_queue_value == 'true' %}selected{% endif %}>Только в очереди</option>
+            <option value="false" {% if filters.in_queue_value == 'false' %}selected{% endif %}>Только вне очереди</option>
+        </select>
+    </div>
+    <div class="col-6 col-md-3 col-lg-2">
+        <label class="form-label" for="sort">Сортировка</label>
+        <select class="form-select" id="sort" name="sort">
+            {% for value, label in sort_options.items() %}
+                <option value="{{ value }}" {% if filters.sort == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-6 col-md-3 col-lg-2">
+        <label class="form-label" for="per_page">На странице</label>
+        <input class="form-control" type="number" id="per_page" name="per_page" value="{{ filters.per_page }}" min="5" max="100">
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-primary" type="submit">Применить</button>
+    </div>
+    <div class="col-auto">
+        <a class="btn btn-outline-secondary" href="/">Сбросить</a>
+    </div>
+</form>
+
+{% if stories %}
+<table class="table table-hover align-middle">
+    <thead>
+        <tr>
+            <th style="width: 5%;">ID</th>
+            <th>История</th>
+            <th style="width: 12%;">Обновлено</th>
+            <th style="width: 15%;">Статус</th>
+            <th class="text-end" style="width: 18%;">Действия</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for story in stories %}
+        <tr>
+            <td class="fw-semibold">{{ story.id }}</td>
+            <td>
+                <a href="/stories/{{ story.id }}" class="link-dark text-decoration-none fw-semibold">{{ story.title_highlighted | safe }}</a>
+                <div class="mt-2 d-flex flex-wrap gap-2">
+                    <span class="badge bg-secondary-subtle text-secondary-emphasis">📰 {{ story.article_count }}</span>
+                    {% for badge in story.badges %}
+                        <span class="badge bg-light text-dark">{{ badge.icon }} {{ badge.count }}</span>
+                    {% endfor %}
+                    {% if story.has_neardups %}
+                        <span class="badge bg-warning text-dark" title="В истории скрыты почти дубликаты">≈ дубли</span>
+                    {% endif %}
+                    {% if story.in_queue %}
+                        <span class="badge bg-info text-dark" title="История уже в очереди на отправку">queue</span>
+                    {% endif %}
+                </div>
+            </td>
+            <td class="text-muted small">{{ story.updated_at }}</td>
+            <td>
+                {% if story.in_queue %}
+                    <span class="badge bg-info text-dark">В очереди</span>
+                {% else %}
+                    <span class="badge bg-light text-dark">Свободна</span>
+                {% endif %}
+                {% if story.has_neardups %}
+                    <span class="badge bg-warning text-dark ms-1">≈</span>
+                {% endif %}
+            </td>
+            <td class="text-end">
+                <button class="btn btn-sm btn-outline-primary me-2" onclick="previewStory({{ story.id }})">Preview</button>
+                <button class="btn btn-sm btn-success" onclick="publishStory({{ story.id }}, false)">Publish now</button>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<nav aria-label="pagination">
+    <ul class="pagination">
+        <li class="page-item {% if not pagination.prev_url %}disabled{% endif %}">
+            <a class="page-link" href="{{ pagination.prev_url if pagination.prev_url else '#' }}">Назад</a>
+        </li>
+        {% for item in pagination.page_links %}
+            <li class="page-item {% if item.current %}active{% endif %}">
+                <a class="page-link" href="{{ item.url }}">{{ item.page }}</a>
+            </li>
+        {% endfor %}
+        <li class="page-item {% if not pagination.next_url %}disabled{% endif %}">
+            <a class="page-link" href="{{ pagination.next_url if pagination.next_url else '#' }}">Вперёд</a>
+        </li>
+    </ul>
+</nav>
+{% else %}
+<p class="text-muted">По текущему запросу ничего не найдено. Попробуйте ослабить фильтры.</p>
+{% endif %}
+{% endblock %}

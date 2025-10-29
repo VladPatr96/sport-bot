@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-2 mb-lg-0">Очередь публикаций</h1>
+    <div class="text-muted small">Всего записей: {{ pagination.total }}</div>
+</div>
+
+<form class="row g-3 align-items-end mb-4" method="get">
+    <input type="hidden" name="page" value="1">
+    <div class="col-6 col-md-3 col-lg-2">
+        <label class="form-label" for="status">Статус</label>
+        <select class="form-select" id="status" name="status">
+            {% for value, label in status_options %}
+                <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-6 col-md-3 col-lg-2">
+        <label class="form-label" for="since">С даты</label>
+        <input class="form-control" type="text" id="since" name="since" value="{{ filters.since }}" placeholder="2025-10-10T00:00:00">
+    </div>
+    <div class="col-6 col-md-3 col-lg-2">
+        <label class="form-label" for="until">По дату</label>
+        <input class="form-control" type="text" id="until" name="until" value="{{ filters.until }}" placeholder="2025-10-17T23:59:59">
+    </div>
+    <div class="col-6 col-md-3 col-lg-2">
+        <label class="form-label" for="per_page">На странице</label>
+        <input class="form-control" type="number" id="per_page" name="per_page" value="{{ filters.per_page }}" min="10" max="100">
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-primary" type="submit">Применить</button>
+    </div>
+    <div class="col-auto">
+        <a class="btn btn-outline-secondary" href="/queue">Сбросить</a>
+    </div>
+</form>
+
+{% if items %}
+<table class="table table-hover align-middle">
+    <thead>
+        <tr>
+            <th style="width:6%;">ID</th>
+            <th>Элемент</th>
+            <th style="width:12%;">Статус</th>
+            <th style="width:15%;">Запланировано</th>
+            <th style="width:15%;">Отправлено</th>
+            <th style="width:15%;">Сообщение</th>
+            <th>Ошибка</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for item in items %}
+        <tr>
+            <td>{{ item.id }}</td>
+            <td>
+                {% if item.link %}
+                    <a href="{{ item.link }}" class="text-decoration-none">{{ item.item_type }} #{{ item.item_id }}</a>
+                {% else %}
+                    {{ item.item_type }} #{{ item.item_id }}
+                {% endif %}
+                {% if item.has_hidden %}
+                    <span class="text-warning ms-1" title="При публикации часть статей будет скрыта как почти дубли.">≈</span>
+                {% endif %}
+                <div class="small text-muted">Поставлено: {{ item.enqueued_at or '—' }}</div>
+            </td>
+            <td>
+                <span class="badge {% if item.status == 'sent' %}bg-success{% elif item.status == 'error' %}bg-danger{% elif item.status == 'queued' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                    {{ item.status }}
+                </span>
+            </td>
+            <td>{{ item.scheduled_at or '—' }}</td>
+            <td>{{ item.sent_at or '—' }}</td>
+            <td>{{ item.message_id or '—' }}</td>
+            <td>
+                {% if item.error %}
+                    <span class="text-danger" title="{{ item.error }}">{{ item.error|truncate(60, True, '…') }}</span>
+                {% else %}
+                    <span class="text-muted">—</span>
+                {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<nav aria-label="pagination">
+    <ul class="pagination">
+        <li class="page-item {% if not pagination.prev_url %}disabled{% endif %}">
+            <a class="page-link" href="{{ pagination.prev_url if pagination.prev_url else '#' }}">Назад</a>
+        </li>
+        {% for item in pagination.page_links %}
+            <li class="page-item {% if item.current %}active{% endif %}">
+                <a class="page-link" href="{{ item.url }}">{{ item.page }}</a>
+            </li>
+        {% endfor %}
+        <li class="page-item {% if not pagination.next_url %}disabled{% endif %}">
+            <a class="page-link" href="{{ pagination.next_url if pagination.next_url else '#' }}">Вперёд</a>
+        </li>
+    </ul>
+</nav>
+{% else %}
+<p class="text-muted">Очередь пуста.</p>
+{% endif %}
+{% endblock %}

@@ -2,6 +2,7 @@
 import argparse, sqlite3, sys
 from contextlib import closing
 
+
 def step(conn, sql, label, verbose=False):
     cur = conn.execute(sql)
     rc = cur.rowcount if cur.rowcount is not None else 0

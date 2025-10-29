@@ -6,6 +6,8 @@ import json
 import argparse
 import asyncio
 import sqlite3
+import logging
+
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
 
@@ -18,8 +20,19 @@ from selenium.common.exceptions import WebDriverException, TimeoutException
 from urllib3.exceptions import ReadTimeoutError
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 
+from categorizer.db_tags import link_article_tag, upsert_alias_from_tag, upsert_tag
+from categorizer.tag_utils import normalize_tag_name, normalize_tag_type, normalize_tag_url
+from cluster.fingerprints import compute_signatures
+from db.utils import get_conn
 from database.prosport_db import init_db
 from parsers.sources.championat.parsers.champ_parser import ChampParserSelenium
+
+from pathlib import Path
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+logger = logging.getLogger(__name__)
+
+# ===================== Текст/дата =====================
 
 
 
@@ -44,6 +57,48 @@ def dedupe(items: List[str]) -> List[str]:
             seen.add(x)
             out.append(x)
     return out
+
+
+def upsert_fingerprint(conn, news_id: int, title: str, tags: List[Dict[str, Any]]) -> None:
+    entities = {"sport": None, "tournament": None, "team": None, "player": None}
+    for tag in tags or []:
+        tag_type = (tag.get("type") or "").strip().lower()
+        name = tag.get("name")
+        if not name:
+            continue
+        if tag_type == "tournament" and not entities["tournament"]:
+            entities["tournament"] = name
+        elif tag_type == "team" and not entities["team"]:
+            entities["team"] = name
+        elif tag_type == "player" and not entities["player"]:
+            entities["player"] = name
+        elif tag_type == "sport" and not entities["sport"]:
+            entities["sport"] = name
+    title_sig, entity_sig = compute_signatures(
+        title or "",
+        {
+            "sport": entities["sport"],
+            "tournament": entities["tournament"],
+            "team": entities["team"],
+            "player": entities["player"],
+        },
+    )
+    conn.execute(
+        """
+        INSERT INTO content_fingerprints (news_id, title_sig, entity_sig, created_at)
+        VALUES (?, ?, ?, STRFTIME('%Y-%m-%dT%H:%M:%SZ','now'))
+        ON CONFLICT(news_id) DO UPDATE SET
+            title_sig = excluded.title_sig,
+            entity_sig = excluded.entity_sig
+        """,
+        (news_id, title_sig, entity_sig),
+    )
+    logger.info(
+        'fingerprint upserted news_id=%s title_sig="%s" entity_sig=%s',
+        news_id,
+        title_sig,
+        entity_sig,
+    )
 
 def to_iso(group_date: Optional[str], time_text: Optional[str]) -> Optional[str]:
     """ group_date: '1 сентября 2025'; time_text: '21:50' -> ISO8601 """
@@ -160,24 +215,21 @@ def get_anchor_from_db(conn: sqlite3.Connection, f: Dict[str, str]) -> Optional[
     return normalize_url(anchor_url)
 
 # ===================== Конфиг =====================
-def load_champ_config() -> Optional[Dict[str, Any]]:
-    config_path = os.path.join(
-        os.path.dirname(__file__),
-        "parsers", "sources", "championat", "config", "sources_config.yml"
-    )
+def load_champ_config() -> dict | None:
+    config_path = PROJECT_ROOT / "parsers" / "sources" / "championat" / "config" / "sources_config.yml"
     if not os.path.exists(config_path):
-        print(f"❌ Конфиг не найден: {config_path}")
+        logger.error("Championat config file is missing: %s", config_path)
         return None
     try:
         with open(config_path, "r", encoding="utf-8") as f:
             raw = yaml.safe_load(f) or {}
     except Exception as e:
-        print(f"❌ Ошибка чтения YAML: {e}")
+        logger.exception("Failed to parse Championat config")
         return None
 
     src = (raw.get("championat") or {}).copy()
     if not src:
-        print("❌ В YAML нет секции 'championat'")
+        logger.error("Section 'championat' not found in config")
         return None
 
     url = src.get("url")
@@ -212,20 +264,26 @@ def load_champ_config() -> Optional[Dict[str, Any]]:
     required = ("list_item", "list_item_url", "list_item_title", "article_title", "article_body")
     missing = [k for k in required if not selectors.get(k)]
     if missing:
-        print("❌ Некорректная конфигурация Championat. Отсутствуют селекторы:", ", ".join(missing))
+        logger.error("Championat config is missing required selectors: %s", ", ".join(missing))
         return None
 
     return cfg
 
 # ===================== Сохранение новости/тегов =====================
-def upsert_news(conn: sqlite3.Connection, f: Dict[str, str], article: Dict[str, Any]) -> Optional[int]:
+
+
+def upsert_news(
+    conn: sqlite3.Connection,
+    f: Dict[str, str],
+    article: Dict[str, Any],
+) -> Tuple[Optional[int], bool]:
     cur = conn.cursor()
 
     url = article.get("url")
     nurl = normalize_url(url)
     if not nurl or not f["url"]:
-        print("⚠️ Пропуск записи без URL или без столбца URL в БД")
-        return None
+        logger.warning("Skipping article without URL or URL column")
+        return None, False
 
     title = sanitize_text(article.get("title"))
     content = sanitize_text(article.get("body"))
@@ -240,63 +298,72 @@ def upsert_news(conn: sqlite3.Connection, f: Dict[str, str], article: Dict[str, 
     row = cur.fetchone()
     if row:
         news_id, _ = row
-        sets, vals = [], []
-        if f["title"] and title:         sets.append(f"{f['title']} = ?");         vals.append(title)
-        if f["content"] and content:     sets.append(f"{f['content']} = ?");       vals.append(content)
-        if f["published"] and published: sets.append(f"{f['published']} = ?");     vals.append(published)
-        if f["source"]:                  sets.append(f"{f['source']} = ?");        vals.append(source)
-        if f["lang"]:                    sets.append(f"{f['lang']} = ?");          vals.append(lang)
+        sets: List[str] = []
+        vals: List[Any] = []
+        if f["title"] and title:
+            sets.append(f"{f['title']} = ?"); vals.append(title)
+        if f["content"] and content:
+            sets.append(f"{f['content']} = ?"); vals.append(content)
+        if f["published"] and published:
+            sets.append(f"{f['published']} = ?"); vals.append(published)
+        if f["source"]:
+            sets.append(f"{f['source']} = ?"); vals.append(source)
+        if f["lang"]:
+            sets.append(f"{f['lang']} = ?"); vals.append(lang)
         if f["image_url"] and main_image:
             sets.append(f"{f['image_url']} = ?"); vals.append(main_image)
         img_json = json.dumps(imgs, ensure_ascii=False)
         vid_json = json.dumps(vids, ensure_ascii=False)
-        if f["image_urls"]:  sets.append(f"{f['image_urls']} = ?"); vals.append(img_json)
+        if f["image_urls"]:
+            sets.append(f"{f['image_urls']} = ?"); vals.append(img_json)
         if f["images"] and f["images"] != f["image_urls"]:
             sets.append(f"{f['images']} = ?"); vals.append(img_json)
-        if f["video_urls"]:  sets.append(f"{f['video_urls']} = ?"); vals.append(vid_json)
+        if f["video_urls"]:
+            sets.append(f"{f['video_urls']} = ?"); vals.append(vid_json)
         if f["videos"] and f["videos"] != f["video_urls"]:
             sets.append(f"{f['videos']} = ?"); vals.append(vid_json)
 
         if sets:
-            sql = f"UPDATE news SET {', '.join(sets)} WHERE {f['url']} = ?"
             vals.append(nurl)
+            sql = f"UPDATE news SET {', '.join(sets)} WHERE {f['url']} = ?"
             cur.execute(sql, tuple(vals))
-        conn.commit()
-        print(f"    ✅ Новость обновлена: {title or nurl}")
-        return news_id
-    else:
-        cols = [f["url"]]; vals = [nurl]
-        if f["title"] and title:         cols.append(f["title"]);         vals.append(title)
-        if f["content"] and content:     cols.append(f["content"]);       vals.append(content)
-        if f["published"] and published: cols.append(f["published"]);     vals.append(published)
-        if f["source"]:                  cols.append(f["source"]);        vals.append(source)
-        if f["lang"]:                    cols.append(f["lang"]);          vals.append(lang)
-        if f["image_url"] and main_image:
-            cols.append(f["image_url"]); vals.append(main_image)
-        img_json = json.dumps(imgs, ensure_ascii=False)
-        vid_json = json.dumps(vids, ensure_ascii=False)
-        if f["image_urls"]:  cols.append(f["image_urls"]);  vals.append(img_json)
-        if f["images"] and f["images"] != f["image_urls"]:
-            cols.append(f["images"]);    vals.append(img_json)
-        if f["video_urls"]:  cols.append(f["video_urls"]);  vals.append(vid_json)
-        if f["videos"] and f["videos"] != f["video_urls"]:
-            cols.append(f["videos"]);    vals.append(vid_json)
-        if f["is_published"]:
-            cols.append(f["is_published"]); vals.append(0)
+        return news_id, False
 
-        placeholders = ", ".join(["?"] * len(vals))
-        sql = f"INSERT INTO news ({', '.join(cols)}) VALUES ({placeholders})"
-        cur.execute(sql, tuple(vals))
-        conn.commit()
+    cols = [f["url"]]
+    vals = [nurl]
+    if f["title"] and title:
+        cols.append(f["title"]); vals.append(title)
+    if f["content"] and content:
+        cols.append(f["content"]); vals.append(content)
+    if f["published"] and published:
+        cols.append(f["published"]); vals.append(published)
+    if f["source"]:
+        cols.append(f["source"]); vals.append(source)
+    if f["lang"]:
+        cols.append(f["lang"]); vals.append(lang)
+    if f["image_url"] and main_image:
+        cols.append(f["image_url"]); vals.append(main_image)
+    img_json = json.dumps(imgs, ensure_ascii=False)
+    vid_json = json.dumps(vids, ensure_ascii=False)
+    if f["image_urls"]:
+        cols.append(f["image_urls"]); vals.append(img_json)
+    if f["images"] and f["images"] != f["image_urls"]:
+        cols.append(f["images"]); vals.append(img_json)
+    if f["video_urls"]:
+        cols.append(f["video_urls"]); vals.append(vid_json)
+    if f["videos"] and f["videos"] != f["video_urls"]:
+        cols.append(f["videos"]); vals.append(vid_json)
+    if f["is_published"]:
+        cols.append(f["is_published"]); vals.append(0)
 
-        cur.execute(f"SELECT {f.get('id','rowid')} FROM news WHERE {f['url']} = ?", (nurl,))
-        row = cur.fetchone()
-        news_id = row[0] if row else None
+    placeholders = ", ".join(["?"] * len(vals))
+    sql = f"INSERT INTO news ({', '.join(cols)}) VALUES ({placeholders})"
+    cur.execute(sql, tuple(vals))
 
-        print(f"    ✅ Новость добавлена: {title or nurl}")
-        return news_id
-
-
+    cur.execute(f"SELECT {f.get('id','rowid')} FROM news WHERE {f['url']} = ?", (nurl,))
+    row = cur.fetchone()
+    news_id = row[0] if row else None
+    return news_id, True
 def _norm_tag_url(u: str | None) -> str | None:
     if not u:
         return None
@@ -309,160 +376,76 @@ def _norm_tag_url(u: str | None) -> str | None:
         u = "https://www.championat.com" + u
     u = u.split("?", 1)[0].rstrip("/")
     return u
-def upsert_article_tags(conn: sqlite3.Connection, news_id: int, tags: List[Dict[str, Any]]):
-    """
-    Надёжный апсерт тегов:
-    - ключ: URL (нормализуем), если URL нет — пробуем по name (без уникального индекса по имени)
-    - если тег уже есть -> ДОзаполняем type/url/entity_id (только если пусты)
-    - создаём связь в news_article_tags
-    """
+
+
+def upsert_article_tags(
+    conn: sqlite3.Connection,
+    news_id: int,
+    tags: List[Dict[str, Any]],
+    *,
+    source: str = 'championat',
+    lang: str = 'ru',
+    context: Optional[str] = None,
+) -> Dict[str, int]:
+    """Normalize tag payload and ensure tags and links exist."""
+    counters = {
+        'processed': 0,
+        'created': 0,
+        'linked': 0,
+        'duplicates': 0,
+        'invalid': 0,
+        'aliases': 0,
+    }
+
     if not news_id or not tags:
-        return
+        return counters
 
-    from urllib.parse import urlparse, urlunparse  # локально, чтобы не трогать верх файла
-    cur = conn.cursor()
+    for raw in tags:
+        raw_name = raw.get('name')
+        raw_url = raw.get('url')
+        raw_type = raw.get('type')
 
-    # Индексы (URL уникален; по паре news_id/tag_id уникальность связи)
-    cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_tags_url_unique ON tags(url);")
-    cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_news_article_tags_uniq ON news_article_tags(news_id, tag_id);")
+        name_normalized = normalize_tag_name(raw_name)
+        url_normalized = normalize_tag_url(raw_url)
+        type_normalized = normalize_tag_type(
+            raw_type,
+            name=raw_name,
+            url=raw_url,
+            context=context,
+        )
 
-    for t in tags:
-        raw_name = (t.get("name") or "").strip()
-        raw_url  = t.get("url")
-        ttype    = (t.get("type") or None)
-        entity_id = t.get("entity_id")
+        if not name_normalized and not url_normalized:
+            counters['invalid'] += 1
+            continue
 
-        # Нормализованный URL (используем для вставки/апдейта)
-        nurl = _norm_tag_url(raw_url)
+        tag_id, created = upsert_tag(
+            conn,
+            name=name_normalized or (raw_name or '').strip(),
+            url=url_normalized or None,
+            tag_type=type_normalized,
+            context=context,
+        )
+        if created:
+            counters['created'] += 1
 
-        # Кандидаты для поиска существующего тега строим ИЗ raw_url:
-        # абсолютный/относительный, со/без хвостового '/', c www/без www
-        candidates: List[str] = []
-        if raw_url:
-            u = str(raw_url).strip()
-            if not u.startswith("http"):
-                if not u.startswith("/"):
-                    u = "/" + u
-                abs_u = "https://www.championat.com" + u
-                rel_u = u
-            else:
-                abs_u = u.split("?", 1)[0]
-                _p = urlparse(abs_u)
-                rel_u = _p.path
+        if link_article_tag(conn, news_id=news_id, tag_id=tag_id):
+            counters['linked'] += 1
+        else:
+            counters['duplicates'] += 1
 
-            def _alts(x: str) -> List[str]:
-                x = x.split("?", 1)[0]
-                base = x.rstrip("/")
-                return [base, base + "/"]
+        if upsert_alias_from_tag(
+            conn,
+            tag_id=tag_id,
+            name=name_normalized or (raw_name or '').strip(),
+            tag_type=type_normalized,
+            source=source,
+            lang=lang,
+        ):
+            counters['aliases'] += 1
 
-            # базовые варианты
-            candidates.extend(_alts(abs_u))
-            candidates.extend(_alts(rel_u))
+        counters['processed'] += 1
 
-            # вариант без www (если вдруг так хранится)
-            if abs_u.startswith("https://www.championat.com"):
-                no_www = abs_u.replace("https://www.championat.com", "https://championat.com", 1)
-                candidates.extend(_alts(no_www))
-
-            # убрать дубликаты, сохранив порядок
-            seen = set()
-            candidates = [x for x in candidates if not (x in seen or seen.add(x))]
-
-        tag_id = None
-
-        try:
-            if candidates:
-                # 1) пытаемся найти по любому из эквивалентных URL
-                placeholders = ",".join("?" for _ in candidates)
-                cur.execute(
-                    f"SELECT id, name, type, entity_id FROM tags WHERE url IN ({placeholders}) LIMIT 1",
-                    candidates
-                )
-                row = cur.fetchone()
-            else:
-                row = None
-
-            if row:
-                tag_id = row[0]
-                # Мягкое обновление: дополняем пустые поля
-                sets, vals = [], []
-                if raw_name and (row[1] or "").strip() == "":
-                    sets.append("name = ?"); vals.append(raw_name)
-                if ttype and (row[2] is None or str(row[2]).strip() == ""):
-                    sets.append("type = ?"); vals.append(ttype)
-                if entity_id is not None and row[3] is None:
-                    sets.append("entity_id = ?"); vals.append(entity_id)
-                if sets:
-                    cur.execute(f"UPDATE tags SET {', '.join(sets)} WHERE id = ?", (*vals, tag_id))
-
-            else:
-                if nurl:
-                    # Вставляем по нормализованному URL
-                    cur.execute(
-                        "INSERT OR IGNORE INTO tags (name, url, type, entity_id) VALUES (?, ?, ?, ?)",
-                        (raw_name or None, nurl, ttype, entity_id)
-                    )
-                    # Берём id уже существующей/вставленной записи — снова через IN-кандидаты
-                    if candidates:
-                        placeholders = ",".join("?" for _ in candidates)
-                        cur.execute(
-                            f"SELECT id FROM tags WHERE url IN ({placeholders}) ORDER BY id DESC LIMIT 1",
-                            candidates
-                        )
-                        r = cur.fetchone()
-                        tag_id = r[0] if r else None
-                    else:
-                        tag_id = None
-                else:
-                    # URL нет — fallback по имени (НЕ делаем UNIQUE по name!)
-                    if not raw_name:
-                        continue
-                    cur.execute("SELECT id, url, type, entity_id FROM tags WHERE name = ? COLLATE NOCASE ORDER BY id DESC LIMIT 1", (raw_name,))
-                    row = cur.fetchone()
-                    if row:
-                        tag_id = row[0]
-                        sets, vals = [], []
-                        if nurl and (row[1] is None or str(row[1]).strip() == ""):
-                            sets.append("url = ?"); vals.append(nurl)
-                        if ttype and (row[2] is None or str(row[2]).strip() == ""):
-                            sets.append("type = ?"); vals.append(ttype)
-                        if entity_id is not None and row[3] is None:
-                            sets.append("entity_id = ?"); vals.append(entity_id)
-                        if sets:
-                            cur.execute(f"UPDATE tags SET {', '.join(sets)} WHERE id = ?", (*vals, tag_id))
-                    else:
-                        cur.execute(
-                            "INSERT INTO tags (name, url, type, entity_id) VALUES (?, NULL, ?, ?)",
-                            (raw_name, ttype, entity_id)
-                        )
-                        tag_id = cur.lastrowid
-
-            if tag_id:
-                cur.execute(
-                    "INSERT OR IGNORE INTO news_article_tags (news_id, tag_id) VALUES (?, ?)",
-                    (news_id, tag_id)
-                )
-
-        except sqlite3.IntegrityError as e:
-            # На случай гонки/дубля: добираем существующий id и ставим связь
-            r = None
-            if candidates:
-                placeholders = ",".join("?" for _ in candidates)
-                cur.execute(
-                    f"SELECT id FROM tags WHERE url IN ({placeholders}) ORDER BY id DESC LIMIT 1",
-                    candidates
-                )
-                r = cur.fetchone()
-            if not r and raw_name:
-                cur.execute("SELECT id FROM tags WHERE name = ? COLLATE NOCASE ORDER BY id DESC LIMIT 1", (raw_name,))
-                r = cur.fetchone()
-            if r:
-                tag_id = r[0]
-                cur.execute("INSERT OR IGNORE INTO news_article_tags (news_id, tag_id) VALUES (?, ?)", (news_id, tag_id))
-            print(f"    ⚠️ Tag upsert warning for {raw_name or nurl}: {e}")
-
-    conn.commit()
-
+    return counters
 
 
 # ===================== Загрузка HTML (без parser._wait_for_page_load) =====================
@@ -474,7 +457,7 @@ def get_soup(driver, url: str, css_to_wait: str, timeout: int = 25) -> Optional[
         )
         return BeautifulSoup(driver.page_source, "html.parser")
     except Exception as e:
-        print(f"❌ Ошибка загрузки {url}: {e}")
+        logger.warning("Failed to load %s: %s", url, e)
         return None
 
 # ===================== Сбор карточек до якоря (page-content + дата группы) =====================
@@ -491,7 +474,7 @@ async def collect_until_anchor_by_url(
 
     for page in range(1, max_pages + 1):
         page_url = page_url_from_base(base_url, page)
-        print(f"ℹ️ Загружаем список новостей с {page_url}...")
+        logger.info("Fetching listing page: %s", page_url)
         soup = get_soup(parser.driver, page_url, parser.cfg["list_item"], timeout=cfg.get("timeout", 25))
         if not soup:
             continue
@@ -520,7 +503,7 @@ async def collect_until_anchor_by_url(
                 title = _strip(title_el.text) if title_el else None
 
                 if anchor_norm and full_url == anchor_norm:
-                    print(f"🔖 Найден якорь: {full_url} на странице {page}")
+                    logger.info("Anchor found: %s (page %s)", full_url, page)
                     found_anchor = True
                     break
 
@@ -535,102 +518,224 @@ async def collect_until_anchor_by_url(
             break
 
     if not found_anchor:
-        print("⚠️ Якорная новость не найдена на первых страницах.")
+        logger.warning("Anchor article not found within page limit")
     return all_metas
 
 # ===================== Основной цикл =====================
-async def sync_news_since_anchor_url(max_pages: int = 50, manual_anchor: Optional[str] = None, dry_run: bool = False):
-    db_path = os.path.join(os.path.dirname(__file__), "database", "prosport.db")
+
+
+
+async def sync_news_since_anchor_url(
+    max_pages: int = 50,
+    manual_anchor: Optional[str] = None,
+    dry_run: bool = False,
+    smoke: bool = False,
+) -> None:
+    db_path = PROJECT_ROOT / "database" / "prosport.db"
+
+    logger.info("Starting Championat sync (smoke=%s, dry_run=%s)", smoke, dry_run)
+    logger.info("Database path: %s", db_path)
 
     try:
         init_db(db_path)
-    except Exception as e:
-        print(f"❌ Ошибка инициализации БД: {e}")
+    except Exception:
+        logger.exception("Failed to initialize database at %s", db_path)
         return
 
     try:
-        conn = sqlite3.connect(db_path)
-        conn.execute("PRAGMA foreign_keys = ON;")
-    except Exception as e:
-        print(f"❌ Не удалось открыть БД: {e}")
+        conn = get_conn(db_path)
+    except Exception:
+        logger.exception("Failed to connect to database at %s", db_path)
         return
 
     try:
         f = choose_field_names(conn)
         if not f["url"]:
-            print("❌ В таблице news отсутствует столбец URL — работа невозможна.")
+            logger.error("Table news does not expose a URL column; aborting sync")
             return
         ensure_useful_indexes(conn, f)
 
         cfg = load_champ_config()
         if not cfg:
-            print("❌ Синхронизация отменена из-за конфигурации.")
+            logger.error("Championat config is missing or invalid; aborting sync")
             return
 
         anchor_url = normalize_url(manual_anchor) if manual_anchor else get_anchor_from_db(conn, f)
         if anchor_url:
-            print(f"🔖 Якорная новость: {anchor_url}")
+            logger.info("Anchor URL: %s", anchor_url)
 
-        processed = 0
+        processed_total = 0
+        inserted_total = 0
+        skipped_total = 0
         existing_urls = set()
+        tags_created_total = 0
+        tag_links_created_total = 0
+        tag_links_skipped_total = 0
+        aliases_upserted_total = 0
 
         async with ChampParserSelenium(cfg) as parser:
             if not parser.is_initialized:
-                print("❌ WebDriver не инициализирован. Выход.")
+                logger.error("WebDriver failed to initialize; stopping sync")
                 return
 
-            metas = await collect_until_anchor_by_url(parser, cfg, anchor_url, max_pages)
+            pages_limit = 1 if smoke else max_pages
+            metas = await collect_until_anchor_by_url(parser, cfg, anchor_url, pages_limit)
             if not metas:
-                print("ℹ️ Нет новых карточек для обработки.")
+                logger.info("No articles collected from Championat")
                 return
 
-            for i, meta in enumerate(metas, 1):
+            if smoke:
+                metas = metas[:3]
+                logger.info("Smoke mode enabled: limiting inserts to %s article(s)", len(metas))
+
+            total_candidates = len(metas)
+            logger.info("Collected %s article candidates", total_candidates)
+
+            for index, meta in enumerate(metas, 1):
                 nurl = normalize_url(meta.get("url"))
-                if not nurl or nurl in existing_urls:
+                if not nurl:
+                    logger.warning("Skipping item %s/%s: empty URL", index, total_candidates)
+                    skipped_total += 1
                     continue
-                print(f"Обработка {i}/{len(metas)}: {nurl}")
+                if nurl in existing_urls:
+                    logger.info("Skipping duplicate from current batch: %s", nurl)
+                    skipped_total += 1
+                    continue
+
+                logger.info("Processing item %s/%s: %s", index, total_candidates, nurl)
+                existing_urls.add(nurl)
+                processed_total += 1
+
                 if dry_run:
+                    skipped_total += 1
                     continue
+
                 try:
                     article = await parser.fetch_article(meta)
                     if article and not article.get("published") and meta.get("published"):
                         article["published"] = meta["published"]
                     if not article:
-                        print("    ⚠️ Пропуск: не удалось распарсить статью.")
+                        logger.warning("Skipping %s: parser returned empty payload", nurl)
+                        skipped_total += 1
                         continue
-                    news_id = upsert_news(conn, f, article)
-                    if news_id:
-                        upsert_article_tags(conn, news_id, article.get("tags") or [])
-                    existing_urls.add(nurl)
-                    processed += 1
-                except (WebDriverException, TimeoutException, ReadTimeoutError) as e:
-                    print(f"❌ Ошибка на статье {nurl}: {e} — пропускаю.")
 
-        if not dry_run:
-            print(f"🔄 Синхронизация завершена. Успешно обработано: {processed}")
+                    news_id, inserted = upsert_news(conn, f, article)
+                    if not news_id:
+                        skipped_total += 1
+                        continue
+
+                    if inserted:
+                        inserted_total += 1
+                        logger.info("Inserted article id=%s for %s", news_id, nurl)
+                        upsert_fingerprint(conn, news_id, article.get("title", ""), article.get("tags") or [])
+                    else:
+                        skipped_total += 1
+                        logger.info("Skipped duplicate article: %s", nurl)
+
+                    tag_stats = upsert_article_tags(
+                        conn,
+                        news_id,
+                        article.get("tags") or [],
+                        source='championat',
+                        lang='ru',
+                        context=sanitize_text(article.get("title")),
+                    )
+                    tags_created_total += tag_stats['created']
+                    tag_links_created_total += tag_stats['linked']
+                    tag_links_skipped_total += tag_stats['duplicates']
+                    aliases_upserted_total += tag_stats['aliases']
+                    logger.info(
+                        "Tags for %s: processed=%s linked=%s duplicates=%s invalid=%s",
+                        nurl,
+                        tag_stats['processed'],
+                        tag_stats['linked'],
+                        tag_stats['duplicates'],
+                        tag_stats['invalid'],
+                    )
+                    conn.commit()
+                except (WebDriverException, TimeoutException, ReadTimeoutError):
+                    logger.exception("Failed to fetch article %s; skipping", nurl)
+                    skipped_total += 1
+
+        logger.info("Sync stats: processed=%s inserted=%s skipped=%s", processed_total, inserted_total, skipped_total)
+        logger.info(
+            "Tag stats: tags_created=%s tag_links_created=%s tag_links_skipped=%s aliases_upserted=%s",
+            tags_created_total,
+            tag_links_created_total,
+            tag_links_skipped_total,
+            aliases_upserted_total,
+        )
+        if dry_run:
+            logger.info("Dry-run mode: no changes were written to the database")
         else:
-            print(f"🔄 Dry-run завершён. Новых статей: {len(metas)} (не записаны в БД).")
-
+            logger.info("Championat sync finished successfully")
     finally:
         try:
             conn.close()
-            print("✅ Соединение с базой данных закрыто.")
+            logger.info("Database connection closed")
         except Exception:
             pass
 
+
+
+
+
+def report_tag_stats(sample_size: int = 3) -> None:
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        news_ids = [row[0] for row in cur.execute(
+            "SELECT id FROM news ORDER BY id DESC LIMIT ?",
+            (sample_size,),
+        ).fetchall()]
+        if not news_ids:
+            logger.info("Report-only: no news rows found; nothing to report")
+            return
+
+        placeholders = ','.join('?' for _ in news_ids)
+        links_count = cur.execute(
+            f"SELECT COUNT(*) FROM news_article_tags WHERE news_id IN ({placeholders})",
+            news_ids,
+        ).fetchone()[0]
+
+        tags_total = cur.execute("SELECT COUNT(*) FROM tags").fetchone()[0]
+        aliases_total = cur.execute(
+            "SELECT COUNT(*) FROM entity_aliases WHERE alias_normalized IS NOT NULL",
+        ).fetchone()[0]
+
+        logger.info("Report-only sample news_ids=%s", news_ids)
+        logger.info(
+            "Report-only counts: tag_links_recent=%s tags_total=%s aliases_total=%s",
+            links_count,
+            tags_total,
+            aliases_total,
+        )
+        logger.info(
+            "Report-only note: tag_links_skipped estimated as 0 due to missing candidate stats",
+        )
+    finally:
+        conn.close()
 # ===================== CLI =====================
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     parser = argparse.ArgumentParser(description="Sync Championat news (URL anchor, page-content, published_at)")
     parser.add_argument("--max-pages", type=int, default=50)
     parser.add_argument("--anchor-url", type=str, default=None)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--smoke", action="store_true")
+    parser.add_argument("--report-only", action="store_true")
     args = parser.parse_args()
 
     try:
-        asyncio.run(sync_news_since_anchor_url(
-            max_pages=args.max_pages,
-            manual_anchor=args.anchor_url,
-            dry_run=args.dry_run,
-        ))
-    except Exception as e:
-        print(f"Произошла непредвиденная ошибка вне основной функции: {e}")
+        if args.report_only:
+            report_tag_stats()
+        else:
+            asyncio.run(sync_news_since_anchor_url(
+                max_pages=args.max_pages,
+                manual_anchor=args.anchor_url,
+                dry_run=args.dry_run,
+                smoke=args.smoke,
+            ))
+    except Exception:
+        logger.exception("Unexpected error while running sync command")
+

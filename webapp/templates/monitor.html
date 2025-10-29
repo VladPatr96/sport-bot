@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Monitor</h1>
+    <div class="text-muted small">Последние значения ключевых метрик</div>
+</div>
+
+{% if metrics %}
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Метрика</th>
+                <th>Значение</th>
+                <th>Порог</th>
+                <th>Окно</th>
+                <th>Метка времени</th>
+                <th>Статус</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for entry in metrics %}
+            {% set status = entry.status %}
+            {% set badge = '🟢' %}
+            {% if status == 'alert' %}
+                {% set badge = '🔴' %}
+            {% elif status == 'unknown' %}
+                {% set badge = '⚪' %}
+            {% endif %}
+            <tr>
+                <td><code>{{ entry.metric }}</code></td>
+                <td>
+                    {% if entry.value is not none %}
+                        {{ '%0.0f'|format(entry.value) if entry.value|round(0) == entry.value else '%0.2f'|format(entry.value) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>
+                    {% if entry.threshold is not none %}
+                        {{ entry.threshold|round(0)|int if entry.threshold|round(0) == entry.threshold else entry.threshold }}
+                        {% if entry.mode == 'min' %}
+                            (min)
+                        {% elif entry.mode == 'max' %}
+                            (max)
+                        {% endif %}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td class="text-muted small">
+                    {{ entry.meta.window or '—' }}
+                </td>
+                <td class="text-muted small">{{ entry.ts_utc }}</td>
+                <td>{{ badge }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-muted">Нет данных по метрикам. Запустите сборщик monitor.</p>
+{% endif %}
+{% endblock %}
