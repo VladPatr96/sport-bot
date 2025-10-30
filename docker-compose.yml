@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  # Telegram-бот с планировщиком публикаций
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: prosport-bot
+    env_file:
+      - .env
+    volumes:
+      - ./database:/app/database
+      - ./mappings:/app/mappings
+      - ./drivers:/app/drivers
+    restart: unless-stopped
+    command: python bot/scheduler.py --loop
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - prosport-network
+
+  # Веб-приложение FastAPI
+  webapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: prosport-webapp
+    env_file:
+      - .env
+    volumes:
+      - ./database:/app/database
+      - ./mappings:/app/mappings
+    ports:
+      - "${WEBAPP_PORT:-8000}:8000"
+    restart: unless-stopped
+    command: python scripts/run_webapp_bot.py --host 0.0.0.0 --port 8000
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - prosport-network
+    depends_on:
+      - bot
+
+  # Парсер новостей (периодический запуск через cron или вручную)
+  parser:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: prosport-parser
+    env_file:
+      - .env
+    volumes:
+      - ./database:/app/database
+      - ./mappings:/app/mappings
+      - ./drivers:/app/drivers
+    restart: "no"  # Запускается вручную или по расписанию
+    command: python scripts/sync_champ_news.py
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - prosport-network
+    profiles:
+      - manual  # Не запускается автоматически с docker-compose up
+
+  # Мониторинг (опционально)
+  monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: prosport-monitor
+    env_file:
+      - .env
+    volumes:
+      - ./database:/app/database
+    restart: unless-stopped
+    command: python scripts/monitor.py --loop --interval 3600
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - prosport-network
+    profiles:
+      - monitoring  # Включается флагом --profile monitoring
+
+networks:
+  prosport-network:
+    driver: bridge
