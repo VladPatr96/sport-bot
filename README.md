@@ -151,6 +151,45 @@ python scripts/monitor.py --loop
 
 ## 🧪 Проверки качества кода
 
+### Автоматические проверки (Pre-commit hooks)
+
+**Установка:**
+
+```bash
+# Установить pre-commit (уже в requirements-dev.txt)
+pip install -e ".[hooks]"
+
+# Установить git hooks
+pre-commit install
+
+# Теперь проверки запускаются автоматически при каждом git commit
+```
+
+**Ручной запуск:**
+
+```bash
+# Проверить все файлы
+pre-commit run --all-files
+
+# Проверить конкретный файл
+pre-commit run --files bot/scheduler.py
+
+# Обновить версии hooks
+pre-commit autoupdate
+```
+
+**Включённые проверки:**
+
+- ✅ Ruff (linting + formatting)
+- ✅ MyPy (type checking для src/)
+- ✅ Bandit (security checks)
+- ✅ Trailing whitespace, EOF, YAML/JSON/TOML syntax
+- ✅ Detect secrets (поиск токенов/паролей)
+- ✅ Markdownlint, yamllint
+- ✅ Large files detection (>1MB)
+
+### Ручные проверки (без pre-commit)
+
 ```bash
 # Линтер (автоисправление)
 ruff check . --fix
@@ -160,6 +199,9 @@ mypy src
 
 # Тесты
 pytest -q
+
+# Покрытие кода
+pytest --cov=src --cov=bot --cov-report=html
 
 # Все проверки сразу
 ruff . && mypy src && pytest -q

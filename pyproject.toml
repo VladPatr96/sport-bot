@@ -141,3 +141,7 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "src.*"
 disallow_untyped_defs = true  # Для src/ строгая типизация
+
+[tool.bandit]
+exclude_dirs = ["tests", "venv", ".venv", "__pycache__"]
+skips = ["B101", "B601"]  # B101: assert_used, B601: paramiko_calls
