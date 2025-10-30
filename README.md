@@ -294,6 +294,7 @@ GitHub Actions workflow [.github/workflows/project-health.yml](.github/workflows
 
 ## 📚 Документация
 
+- [DEPLOYMENT.md](docs/DEPLOYMENT.md) — **развёртывание на сервере**
 - [CHANGELOG.md](docs/CHANGELOG.md) — история изменений
 - [ROADMAP.md](docs/ROADMAP.md) — план развития
 - [DB_SCHEMA.md](docs/DB_SCHEMA.md) — схема базы данных
