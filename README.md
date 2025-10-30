@@ -44,7 +44,7 @@ docker-compose logs -f webapp
 
 ### 3. Доступ к веб-интерфейсу
 
-Открой в браузере: http://localhost:8000
+Открой в браузере: <http://localhost:8000>
 
 ### 4. Парсинг новостей (вручную)
 
@@ -70,19 +70,33 @@ docker-compose down -v
 
 ### 1. Установка зависимостей
 
+**Современный способ (pyproject.toml):**
+
 ```bash
 # Создать виртуальное окружение
 python -m venv .venv
 .venv\Scripts\activate  # Windows
 source .venv/bin/activate  # Linux/Mac
 
-# Установить зависимости
-pip install -r requirements.txt
-pip install -r requirements-dev.txt  # Для разработки
+# Установить проект в режиме разработки с dev-зависимостями
+pip install -e ".[dev]"
+
+# Или только production зависимости
+pip install -e .
+
+# Или все зависимости (dev + docs + hooks)
+pip install -e ".[all]"
 
 # Загрузить spaCy модели
 python -m spacy download ru_core_news_sm
 python -m spacy download en_core_web_sm
+```
+
+**Старый способ (requirements.txt):**
+
+```bash
+pip install -r requirements.txt
+pip install -r requirements-dev.txt  # Для разработки
 ```
 
 ### 2. Настройка окружения
@@ -100,20 +114,38 @@ python db/gen_manifest.py database/prosport.db
 
 ### 3. Запуск компонентов
 
+**С использованием CLI команд (после `pip install -e .`):**
+
 ```bash
 # Парсер новостей
-python scripts/sync_champ_news.py
+prosport-parse
 
 # Кластеризация
-python cluster/build.py
+prosport-cluster
 
 # Telegram-бот (планировщик)
-python bot/scheduler.py --loop
+prosport-bot --loop
 
 # Веб-приложение
-python scripts/run_webapp_bot.py --port 8000
+prosport-webapp --port 8000
 
 # Мониторинг
+prosport-monitor --loop
+
+# Дайджест
+prosport-digest --limit 25
+
+# Миграции БД
+prosport-migrate
+```
+
+**Или напрямую через Python:**
+
+```bash
+python scripts/sync_champ_news.py
+python cluster/build.py
+python bot/scheduler.py --loop
+python scripts/run_webapp_bot.py --port 8000
 python scripts/monitor.py --loop
 ```
 

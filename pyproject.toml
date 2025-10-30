@@ -1,16 +1,143 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "prosport"
 version = "0.1.0"
-requires-python = ">=3.12"
-dependencies = []
+description = "Automated sports news aggregation, categorization, and Telegram publishing system"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+license = {text = "Proprietary"}
+authors = [
+    {name = "VladPatr96", email = "your.email@example.com"}
+]
+keywords = ["telegram", "bot", "news", "sports", "nlp", "parser"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+# Production dependencies (только прямые зависимости)
+dependencies = [
+    # Telegram bot
+    "aiogram>=3.21.0",
+
+    # Web framework
+    "fastapi>=0.116.0",
+    "uvicorn>=0.35.0",
+    "jinja2>=3.1.0",
+
+    # Parsing
+    "beautifulsoup4>=4.13.0",
+    "selenium>=4.0.0",
+    "lxml>=6.0.0",
+
+    # NLP
+    "spacy>=3.8.0",
+    "pymorphy3>=2.0.0",
+    "pymorphy3-dicts-ru>=2.4.0",
+    "nltk>=3.9.0",
+
+    # Data processing
+    "python-dateutil>=2.9.0",
+    "pyyaml>=6.0.0",
+    "feedparser>=6.0.0",
+
+    # Utilities
+    "python-dotenv>=1.1.0",
+    "requests>=2.32.0",
+    "click>=8.2.0",
+    "rich>=14.0.0",
+]
+
+[project.optional-dependencies]
+# Development dependencies
+dev = [
+    "ruff>=0.7.0",
+    "mypy>=1.13.0",
+    "types-requests>=2.31.0",
+    "types-pyyaml>=6.0.0",
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "pytest-mock>=3.14.0",
+    "ipython>=8.29.0",
+    "ipdb>=0.13.0",
+]
+
+# Documentation
+docs = [
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.6.0",
+]
+
+# Pre-commit hooks
+hooks = [
+    "pre-commit>=4.0.0",
+]
+
+# All optional dependencies
+all = [
+    "prosport[dev,docs,hooks]",
+]
+
+[project.scripts]
+# CLI команды для удобного запуска
+prosport-bot = "bot.scheduler:main"
+prosport-webapp = "scripts.run_webapp_bot:main"
+prosport-parse = "scripts.sync_champ_news:main"
+prosport-cluster = "cluster.build:main"
+prosport-monitor = "scripts.monitor:main"
+prosport-digest = "scripts.digest:main"
+prosport-migrate = "scripts.db_migrate:main"
+
+[project.urls]
+Homepage = "https://github.com/VladPatr96/sport-bot"
+Repository = "https://github.com/VladPatr96/sport-bot"
+Issues = "https://github.com/VladPatr96/sport-bot/issues"
 
 [tool.ruff]
 line-length = 100
 target-version = "py312"
 
 [tool.pytest.ini_options]
-addopts = "-q --maxfail=1 --disable-warnings"
+addopts = [
+    "-q",
+    "--maxfail=1",
+    "--disable-warnings",
+    "--strict-markers",
+    "--tb=short",
+]
 testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
 
-[project.scripts]
-prosport = "tools.prosport_cli:app"
+[tool.coverage.run]
+source = ["src", "bot", "categorizer", "cluster", "webapp", "scripts"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/venv/*",
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # Пока что выключено
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "src.*"
+disallow_untyped_defs = true  # Для src/ строгая типизация

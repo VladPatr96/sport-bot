@@ -13,12 +13,13 @@ RUN apt-get update && apt-get install -y \
 # Создание рабочей директории
 WORKDIR /app
 
-# Копирование файлов зависимостей
-COPY requirements.txt .
+# Копирование файлов проекта для установки зависимостей
+COPY pyproject.toml README.md ./
+COPY src ./src
 
-# Установка Python зависимостей
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+# Установка Python зависимостей через pyproject.toml
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -e .
 
 # Загрузка spaCy моделей
 RUN python -m spacy download ru_core_news_sm && \
